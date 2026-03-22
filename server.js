@@ -13,19 +13,30 @@ const MONGODB_URI = 'mongodb+srv://tiagoabreuenge_db_user:S1gpoc%40207042@tiagoc
 
 console.log('🚀 Servidor iniciando...');
 
-// CONEXÃO SIMPLES
+// Variável para controlar se o banco está conectado
+let isDbConnected = false;
+let db = null;
+
+// CONEXÃO COM MONGODB
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ Conectado ao MongoDB!');
-    console.log('📊 Banco:', mongoose.connection.db.databaseName);
+    isDbConnected = true;
+    db = mongoose.connection.db;
+    console.log('📊 Banco:', db.databaseName);
   })
   .catch(err => {
-    console.error('❌ Erro:', err.message);
+    console.error('❌ Erro ao conectar:', err.message);
+    isDbConnected = false;
   });
 
 // ROTA DE TESTE
 app.get('/ping', (req, res) => {
-  res.json({ status: 'ok', message: 'pong' });
+  res.json({ 
+    status: 'ok', 
+    message: 'pong',
+    db_connected: isDbConnected
+  });
 });
 
 // ROTA PRINCIPAL
@@ -37,26 +48,35 @@ app.get('/', (req, res) => {
 app.get('/api/dados', async (req, res) => {
   console.log('📥 GET /api/dados');
   
+  // Verificar se o banco está conectado
+  if (!isDbConnected || !db) {
+    console.log('⚠️ Banco não conectado ainda');
+    return res.status(503).json({ 
+      error: 'Banco de dados não conectado. Aguarde alguns segundos e tente novamente.',
+      connected: false
+    });
+  }
+  
   try {
-    const db = mongoose.connection.db;
     const usuarios = await db.collection('usuarios').find({}).toArray();
     const projetos = await db.collection('projetos').find({}).toArray();
     
     console.log(`✅ ${usuarios.length} usuários, ${projetos.length} projetos`);
     res.json({ usuarios, projetos });
   } catch (error) {
-    console.error('❌ Erro:', error.message);
+    console.error('❌ Erro ao buscar dados:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
 // ROTA PARA SALVAR USUÁRIOS
 app.post('/api/usuarios', async (req, res) => {
-  console.log('📥 POST /api/usuarios');
+  if (!isDbConnected || !db) {
+    return res.status(503).json({ error: 'Banco não conectado' });
+  }
   
   try {
     const { usuarios } = req.body;
-    const db = mongoose.connection.db;
     await db.collection('usuarios').deleteMany({});
     await db.collection('usuarios').insertMany(usuarios);
     res.json({ success: true });
@@ -67,11 +87,12 @@ app.post('/api/usuarios', async (req, res) => {
 
 // ROTA PARA SALVAR PROJETOS
 app.post('/api/projetos', async (req, res) => {
-  console.log('📥 POST /api/projetos');
+  if (!isDbConnected || !db) {
+    return res.status(503).json({ error: 'Banco não conectado' });
+  }
   
   try {
     const { projetos } = req.body;
-    const db = mongoose.connection.db;
     await db.collection('projetos').deleteMany({});
     await db.collection('projetos').insertMany(projetos);
     res.json({ success: true });
@@ -82,11 +103,12 @@ app.post('/api/projetos', async (req, res) => {
 
 // ROTA PARA SALVAR PROJETO INDIVIDUAL
 app.post('/api/projeto', async (req, res) => {
-  console.log('📥 POST /api/projeto');
+  if (!isDbConnected || !db) {
+    return res.status(503).json({ error: 'Banco não conectado' });
+  }
   
   try {
     const projeto = req.body;
-    const db = mongoose.connection.db;
     await db.collection('projetos').updateOne(
       { id: projeto.id },
       { $set: projeto },
@@ -100,10 +122,11 @@ app.post('/api/projeto', async (req, res) => {
 
 // ROTA PARA REMOVER PROJETO
 app.delete('/api/projeto/:id', async (req, res) => {
-  console.log('📥 DELETE /api/projeto');
+  if (!isDbConnected || !db) {
+    return res.status(503).json({ error: 'Banco não conectado' });
+  }
   
   try {
-    const db = mongoose.connection.db;
     await db.collection('projetos').deleteOne({ id: parseInt(req.params.id) });
     res.json({ success: true });
   } catch (error) {
