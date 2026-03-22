@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, './')));
 
 // STRING DE CONEXÃO
-const MONGODB_URI = 'mongodb+srv://tiagoabreuenge_db_user:S1gpoc@207042@tiagocluster.wi6sszn.mongodb.net/projetos?retryWrites=true&w=majority&appName=TiagoCluster';
+const MONGODB_URI = 'mongodb+srv://tiagoabreuenge_db_user:S1gpoc%40207042@tiagocluster.wi6sszn.mongodb.net/projetos?retryWrites=true&w=majority&appName=TiagoCluster';
 
 console.log('🚀 Servidor Workspace Pro iniciando...');
 
