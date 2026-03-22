@@ -97,7 +97,10 @@
             border-radius: 30px;
             transition: all 0.2s;
             min-width: 60px;
+            background: transparent;
+            color: #64748b;
         }
+        .dark .bottom-nav-item { color: #94a3b8; }
         .bottom-nav-item.active {
             background: #e6f0ff;
             color: #0073ea;
@@ -298,8 +301,8 @@
         /* Outros estilos */
         .board-name { word-break: break-word; white-space: normal; line-height: 1.3; }
         .resizable-container { display: flex; height: 100%; position: relative; }
-        .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
         .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); padding: 4px; min-width: 180px; }
+        .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
         .status-trigger { cursor: pointer; transition: filter 0.2s; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
         
         /* Table responsivo */
@@ -314,6 +317,15 @@
         .member-sidebar.open { right: 0; }
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99998; display: none; }
         .sidebar-overlay.open { display: block; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+        .info-item { background: #f8fafc; padding: 12px; border-radius: 12px; }
+        .dark .info-item { background: #1e1e2e; }
+        .info-label { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; }
+        .info-value { font-size: 14px; font-weight: 600; }
+        
+        /* Gantt e outros */
+        .gantt-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; max-height: 600px; }
+        .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -326,7 +338,7 @@
             <div id="userList" class="max-h-64 overflow-y-auto mb-4 space-y-2"></div>
             <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl mb-4 bg-transparent" disabled>
             <button onclick="handleLogin()" id="loginButton" class="w-full btn-primary" disabled>Entrar</button>
-            <p class="text-xs text-center text-slate-400 mt-4">Usuários: tiagoabreu • andresasso • erikacampanha • Senha: 123456</p>
+            <p class="text-xs text-center text-slate-400 mt-4">Usuários: tiagoabreu, andresasso, erikacampanha, etc. • Senha: 123456</p>
         </div>
     </div>
 
@@ -351,7 +363,6 @@
             </div>
         </div>
         
-        <!-- Navegação desktop -->
         <nav class="desktop-nav flex items-center gap-1 px-4 pb-2">
             <button onclick="changeMainView('home')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-home">🏠 Início</button>
             <button onclick="changeMainView('dashboard')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-dash">📊 Dashboard</button>
@@ -360,7 +371,7 @@
         </nav>
     </header>
 
-    <!-- MOBILE SIDEBAR (colapsável) -->
+    <!-- MOBILE SIDEBAR -->
     <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
     <aside id="mobileSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
         <div class="flex justify-between items-center mb-6">
@@ -372,7 +383,7 @@
         <div class="mt-auto border-t border-slate-100 dark:border-slate-800 pt-4">
             <div class="flex items-center justify-between gap-2 text-xs text-slate-400 font-bold uppercase mb-4">
                 <span>Membros Ativos</span>
-                <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110 transition-transform" id="mobileAddMemberBtn">+</button>
+                <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110 transition-transform">+</button>
             </div>
             <div id="mobile-sidebar-team" class="flex flex-wrap gap-1"></div>
         </div>
@@ -383,7 +394,7 @@
         </div>
     </aside>
 
-    <!-- DESKTOP SIDEBAR (fixa) -->
+    <!-- DESKTOP SIDEBAR -->
     <div class="resizable-container flex-1 overflow-hidden">
         <aside id="desktopSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
             <div class="flex items-center justify-between mb-6">
@@ -401,11 +412,10 @@
             <div id="resizeHandle" class="resize-handle"></div>
         </aside>
 
-        <!-- MAIN CONTENT -->
         <main class="flex-1 overflow-y-auto pb-20 md:pb-6 custom-scroll" id="view-container"></main>
     </div>
 
-    <!-- BOTTOM NAVIGATION (mobile) -->
+    <!-- BOTTOM NAVIGATION -->
     <div class="bottom-nav">
         <button onclick="changeMainView('home')" class="bottom-nav-item" id="bottom-home">
             <span>🏠</span>
@@ -428,57 +438,43 @@
         </button>
     </div>
 
-    <!-- MODAIS (mesmos do original, com classes adaptadas) -->
+    <!-- MODAIS -->
     <div id="newProcessModal" class="modal hidden">
         <div class="modal-content">
             <h2 class="text-2xl font-black mb-6">📄 Novo Projeto</h2>
-            <div class="space-y-4">
-                <input type="text" id="newBoardName" placeholder="Nome do projeto *" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-transparent">
-                <textarea id="newBoardDesc" placeholder="Descrição (opcional)" rows="3" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-transparent"></textarea>
-            </div>
+            <input type="text" id="newBoardName" placeholder="Nome do projeto *" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-transparent">
             <div class="flex gap-3 mt-6">
-                <button onclick="createNewBoard()" class="flex-1 btn-primary py-3">Criar Projeto</button>
+                <button onclick="createNewBoardFromModal()" class="flex-1 btn-primary py-3">Criar</button>
                 <button onclick="closeNewProcessModal()" class="flex-1 btn-outline py-3">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL USUÁRIO -->
-    <div id="memberModal" class="member-modal">
-        <div class="member-box">
-            <h2 id="memberModalTitle" class="login-title">👥 Adicionar Membro</h2>
-            <p class="login-subtitle">Preencha as informações do membro</p>
-            <div class="login-form">
-                <input type="hidden" id="memberId">
-                <input type="text" id="memberName" placeholder="Nome completo *" class="login-input">
-                <input type="text" id="memberUsername" placeholder="Nome de usuário *" class="login-input">
-                <input type="password" id="memberPassword" placeholder="Senha (deixe em branco para manter)" class="login-input">
-                <input type="text" id="memberRole" placeholder="Cargo" class="login-input">
-                <input type="email" id="memberEmail" placeholder="E-mail" class="login-input">
-                <input type="tel" id="memberPhone" placeholder="Telefone" class="login-input">
-                <select id="memberType" class="login-input">
-                    <option value="executor">Executor</option>
-                    <option value="manager">Gerente</option>
-                </select>
-                <button onclick="saveMember()" class="login-btn">Salvar Membro</button>
-                <button onclick="closeMemberModal()" class="mt-2 w-full text-slate-500 py-2">Cancelar</button>
-            </div>
+    <div id="memberModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#181829] rounded-2xl w-full max-w-lg p-8 max-h-[90vh] overflow-y-auto">
+            <h2 id="memberModalTitle" class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
+            <input type="hidden" id="memberId">
+            <input type="text" id="memberName" placeholder="Nome completo *" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <input type="text" id="memberUsername" placeholder="Nome de usuário *" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <select id="memberType" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+                <option value="executor">Executor</option>
+                <option value="manager">Gerente</option>
+            </select>
+            <button onclick="saveMember()" class="w-full btn-primary py-3 mt-4">Salvar</button>
+            <button onclick="closeMemberModal()" class="w-full mt-2 text-slate-500 py-2">Cancelar</button>
         </div>
     </div>
 
-    <!-- MODAL SENHA -->
-    <div id="passwordModal" class="password-modal">
-        <div class="password-box">
-            <h2 class="login-title">🔑 Alterar Senha</h2>
-            <div class="space-y-4">
-                <input type="password" id="senhaAtual" placeholder="Senha atual" class="login-input">
-                <input type="password" id="senhaNova" placeholder="Nova senha" class="login-input">
-                <input type="password" id="senhaConfirmar" placeholder="Confirmar" class="login-input">
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="alterarSenha()" class="flex-1 btn-primary py-3">Alterar</button>
-                <button onclick="closePasswordModal()" class="flex-1 btn-outline py-3">Cancelar</button>
-            </div>
+    <div id="passwordModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#181829] rounded-2xl w-full max-w-lg p-8">
+            <h2 class="text-2xl font-black mb-6">🔑 Alterar Senha</h2>
+            <input type="password" id="senhaAtual" placeholder="Senha atual" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <input type="password" id="senhaNova" placeholder="Nova senha" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <input type="password" id="senhaConfirmar" placeholder="Confirmar" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
+            <button onclick="alterarSenha()" class="w-full btn-primary py-3 mt-4">Alterar</button>
+            <button onclick="closePasswordModal()" class="w-full mt-2 btn-outline py-3">Cancelar</button>
         </div>
     </div>
 
@@ -487,14 +483,25 @@
         <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button>
     </div>
 
-    <div id="autoSaveIndicator" class="auto-save-indicator hidden">💾 Salvo</div>
+    <div id="memberSidebarOverlay" class="sidebar-overlay" onclick="closeMemberSidebar()"></div>
+    <div id="memberSidebar" class="member-sidebar">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div>
+                <div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div>
+                <button onclick="closeMemberSidebar()" class="ml-auto text-2xl text-slate-400">&times;</button>
+            </div>
+            <div id="sidebarMemberInfo" class="info-grid mt-4"></div>
+        </div>
+        <div class="p-6" id="memberSidebarContent"></div>
+    </div>
+
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-[9999]">Alterações salvas!</div>
     <div id="dropdownPortal"></div>
-    <div id="memberSidebarOverlay" class="sidebar-overlay" onclick="closeMemberSidebar()"></div>
-    <div id="memberSidebar" class="member-sidebar"><div class="p-6 border-b"><div class="flex items-center gap-3"><div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div><div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div></div><button onclick="closeMemberSidebar()" class="float-right text-2xl">&times;</button><div id="sidebarMemberInfo" class="info-grid mt-4"></div></div><div class="p-6" id="memberSidebarContent"></div></div>
+    <div id="autoSaveIndicator" class="auto-save-indicator hidden">💾 Salvo</div>
 
     <script>
-        // --- DATA STRUCTURE (mesmo do original) ---
+        // ==================== ESTRUTURA DE DADOS ====================
         let state = {
             version: '1.0.0',
             lastModified: new Date().toISOString(),
@@ -529,8 +536,9 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
-        // --- FUNÇÕES DE UTILIDADE ---
+        // ==================== FUNÇÕES UTILITÁRIAS ====================
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -538,11 +546,7 @@
             toast.style.opacity = '1';
             setTimeout(() => { toast.style.opacity = '0'; }, 3000);
         }
-        function toggleGroup(groupId) { state.collapsedGroups[groupId] = !state.collapsedGroups[groupId]; render(); }
-        function isGroupCollapsed(groupId) { return state.collapsedGroups[groupId] || false; }
-        function changeMonth(delta) { if (!state.calendarDate) state.calendarDate = new Date(); state.calendarDate = new Date(state.calendarDate); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); render(); }
 
-        // --- FUNÇÕES DE CÁLCULO ---
         function calculateDueDateStatus(dueDate, taskStatus) {
             if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
             if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
@@ -554,19 +558,21 @@
             if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays} dia(s)` };
             return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
         }
+
         function calculateProjectProgress(board) {
             const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
             if (allTasks.length === 0) return 0;
             const completedTasks = allTasks.filter(t => t.status === 'Concluido').length;
             return Math.round((completedTasks / allTasks.length) * 100);
         }
+
         function isProjectCompleted(board) {
             const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
             if (allTasks.length === 0) return false;
             return allTasks.every(t => t.status === 'Concluido');
         }
 
-        // --- FUNÇÕES DE API ---
+        // ==================== FUNÇÕES DE API ====================
         async function carregarDadosMongo() {
             try {
                 const response = await fetch('/api/dados');
@@ -581,18 +587,22 @@
         async function salvarEquipeMongo() {
             try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {}
         }
+        
         async function salvarBoardsMongo() {
             try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {}
         }
+        
         async function salvarBoardIndividual(board) {
             try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board) }); } catch(e) {}
         }
+        
         async function deletarBoardMongo(id) {
             try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {}
         }
+        
         async function save() { await Promise.all([salvarEquipeMongo(), salvarBoardsMongo()]); }
 
-        // --- BACKUP ---
+        // ==================== BACKUP ====================
         function openDatabaseFile() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -609,12 +619,14 @@
                         await save();
                         renderUserList();
                         render();
+                        renderSidebar();
                         showToast('✅ Banco carregado: ' + file.name);
                     }
                 } catch (error) { showToast('❌ Erro ao ler arquivo', true); }
             };
             input.click();
         }
+        
         function saveDatabaseFile() {
             try {
                 const dataStr = JSON.stringify(state, null, 2);
@@ -629,19 +641,26 @@
             } catch (error) { showToast('❌ Erro ao exportar', true); }
         }
 
-        // --- LOGIN ---
+        // ==================== LOGIN ====================
         function renderUserList() {
             const list = document.getElementById('userList');
             if (!list) return;
             list.innerHTML = state.team.map(u => `
                 <div class="user-item ${state.selectedUserId === u.id ? 'selected' : ''}" onclick="selectUser('${u.id}')">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${u.color}">${u.name.charAt(0)}</div>
-                    <div><div class="font-bold">${u.name}</div><div class="text-xs text-slate-500">@${u.username}</div></div>
+                    <div><div class="font-bold">${escapeHtml(u.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(u.username)}</div></div>
                     ${u.firstAccess ? '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
                 </div>
             `).join('');
         }
-        function selectUser(id) { state.selectedUserId = id; document.getElementById('loginPassword').disabled = false; document.getElementById('loginButton').disabled = false; renderUserList(); }
+
+        function selectUser(id) {
+            state.selectedUserId = id;
+            document.getElementById('loginPassword').disabled = false;
+            document.getElementById('loginButton').disabled = false;
+            renderUserList();
+        }
+
         function handleLogin() {
             const password = document.getElementById('loginPassword').value;
             const user = state.team.find(u => u.id === state.selectedUserId);
@@ -649,11 +668,12 @@
             if (btoa(password) === user.password) {
                 if (user.firstAccess) {
                     state.tempUser = user;
-                    document.getElementById('passwordModal').classList.add('open');
+                    document.getElementById('passwordModal').classList.remove('hidden');
                     document.getElementById('loginModal').style.display = 'none';
                 } else { completeLogin(user); }
             } else { alert('Senha incorreta!'); }
         }
+
         function completeLogin(user) {
             state.currentUser = user;
             document.getElementById('currentUserAvatar').style.background = user.color;
@@ -663,13 +683,22 @@
             document.getElementById('loginPassword').value = '';
             updateUIBasedOnPermissions();
             render();
+            renderSidebar();
             showToast(`Bem-vindo, ${user.name}!`);
         }
+
         function openPasswordModal() {
             document.getElementById('userMenu').classList.add('hidden');
-            document.getElementById('passwordModal').classList.add('open');
+            document.getElementById('passwordModal').classList.remove('hidden');
         }
-        function closePasswordModal() { document.getElementById('passwordModal').classList.remove('open'); document.getElementById('senhaAtual').value = ''; document.getElementById('senhaNova').value = ''; document.getElementById('senhaConfirmar').value = ''; }
+        
+        function closePasswordModal() { 
+            document.getElementById('passwordModal').classList.add('hidden'); 
+            document.getElementById('senhaAtual').value = ''; 
+            document.getElementById('senhaNova').value = ''; 
+            document.getElementById('senhaConfirmar').value = ''; 
+        }
+        
         function alterarSenha() {
             const atual = document.getElementById('senhaAtual').value;
             const nova = document.getElementById('senhaNova').value;
@@ -685,7 +714,9 @@
             closePasswordModal();
             alert('Senha alterada!');
         }
+        
         function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('hidden'); }
+        
         function logout() {
             state.currentUser = null;
             document.getElementById('currentUserAvatar').style.background = '#94a3b8';
@@ -695,47 +726,118 @@
             renderUserList();
             render();
         }
+        
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('userMenu');
             const indicator = document.getElementById('currentUserIndicator');
             if (!indicator.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden');
         });
 
-        // --- PERMISSÕES ---
+        // ==================== PERMISSÕES ====================
         function isCurrentUserManager() { return state.currentUser && state.currentUser.type === 'manager'; }
+        
         function updateUIBasedOnPermissions() {
             const isManager = isCurrentUserManager();
-            document.getElementById('newBoardBtn').style.display = isManager ? 'block' : 'none';
-            document.getElementById('addMemberBtn').style.display = isManager ? 'block' : 'none';
+            const newBoardBtn = document.getElementById('newBoardBtn');
+            if (newBoardBtn) newBoardBtn.style.display = isManager ? 'block' : 'none';
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            if (addMemberBtn) addMemberBtn.style.display = isManager ? 'block' : 'none';
         }
+        
         function canEditTask(task) {
             if (!state.currentUser) return false;
             if (state.currentUser.type === 'manager') return true;
             return state.currentUser.type === 'executor' && task.ownerId === state.currentUser.id;
         }
+        
         function filterTasksByUser(tasks) {
             if (!state.currentUser) return [];
             if (state.currentUser.type === 'manager') return tasks;
             return tasks.filter(t => t.ownerId === state.currentUser.id);
         }
 
-        // --- MEMBROS ---
-        function openAddMemberModal() { document.getElementById('memberModal').classList.add('open'); }
-        function closeMemberModal() { document.getElementById('memberModal').classList.remove('open'); }
-        function openMemberSidebar(memberId) { /* manter do original */ }
-        function closeMemberSidebar() { document.getElementById('memberSidebar').classList.remove('open'); document.getElementById('memberSidebarOverlay').classList.remove('open'); }
+        // ==================== GERENCIAMENTO DE MEMBROS ====================
+        function openAddMemberModal() { document.getElementById('memberModal').classList.remove('hidden'); }
+        function closeMemberModal() { document.getElementById('memberModal').classList.add('hidden'); }
+        
+        function openMemberSidebar(memberId) {
+            const member = state.team.find(m => m.id === memberId);
+            if (!member) return;
+            document.getElementById('sidebarMemberAvatar').style.background = member.color;
+            document.getElementById('sidebarMemberAvatar').innerHTML = member.name.charAt(0);
+            document.getElementById('sidebarMemberName').innerText = member.name;
+            document.getElementById('sidebarMemberRole').innerText = member.role || 'Membro';
+            document.getElementById('sidebarMemberInfo').innerHTML = `
+                <div class="info-item"><div class="info-label">Usuário</div><div class="info-value">@${escapeHtml(member.username)}</div></div>
+                <div class="info-item"><div class="info-label">Cargo</div><div class="info-value">${escapeHtml(member.cargo || 'Membro')}</div></div>
+                ${member.email ? `<div class="info-item"><div class="info-label">Email</div><div class="info-value">${escapeHtml(member.email)}</div></div>` : ''}
+                ${member.phone ? `<div class="info-item"><div class="info-label">Telefone</div><div class="info-value">${escapeHtml(member.phone)}</div></div>` : ''}
+            `;
+            document.getElementById('memberSidebar').classList.add('open');
+            document.getElementById('memberSidebarOverlay').classList.add('open');
+        }
+        
+        function closeMemberSidebar() {
+            document.getElementById('memberSidebar').classList.remove('open');
+            document.getElementById('memberSidebarOverlay').classList.remove('open');
+        }
+        
+        async function saveMember() {
+            const id = document.getElementById('memberId').value;
+            const name = document.getElementById('memberName').value;
+            const username = document.getElementById('memberUsername').value;
+            const password = document.getElementById('memberPassword').value;
+            const role = document.getElementById('memberRole').value;
+            const type = document.getElementById('memberType').value;
+            if (!name || !username) { alert('Preencha os campos obrigatórios!'); return; }
+            
+            if (id) {
+                const member = state.team.find(m => m.id === id);
+                if (member) {
+                    if (state.team.some(m => m.id !== id && m.username === username)) { alert('Nome de usuário já existe!'); return; }
+                    member.name = name;
+                    member.username = username;
+                    if (password) { member.password = btoa(password); member.firstAccess = true; }
+                    member.role = role;
+                    member.cargo = role;
+                    member.type = type;
+                    showToast(`✅ Membro ${name} atualizado!`);
+                }
+            } else {
+                if (state.team.some(u => u.username === username)) { alert('Nome de usuário já existe!'); return; }
+                const newMember = {
+                    id: 'm' + Date.now(),
+                    username: username,
+                    name: name,
+                    password: btoa(password || '123456'),
+                    color: '#' + Math.floor(Math.random()*16777215).toString(16),
+                    role: role,
+                    cargo: role,
+                    type: type,
+                    firstAccess: true
+                };
+                state.team.push(newMember);
+                showToast(`✅ Membro ${name} adicionado!`);
+            }
+            await salvarEquipeMongo();
+            closeMemberModal();
+            renderUserList();
+            renderSidebar();
+            render();
+        }
 
-        // --- MOBILE SIDEBAR ---
+        // ==================== MOBILE SIDEBAR ====================
         function toggleMobileSidebar() {
             document.getElementById('mobileSidebar').classList.toggle('open');
             document.getElementById('mobileOverlay').classList.toggle('open');
         }
+        
         function closeMobileSidebar() {
             document.getElementById('mobileSidebar').classList.remove('open');
             document.getElementById('mobileOverlay').classList.remove('open');
         }
 
-        // --- RENDER SIDEBAR ---
+        // ==================== RENDER SIDEBAR ====================
         function renderSidebar() {
             const activeBoards = state.boards.filter(b => !isProjectCompleted(b));
             const completedBoards = state.boards.filter(b => isProjectCompleted(b));
@@ -744,73 +846,202 @@
                 const progress = calculateProjectProgress(b);
                 return `<div onclick="selectBoard(${b.id})" class="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 mb-1">
                     <span class="text-lg">📋</span>
-                    <div class="flex-1"><div class="text-sm font-medium">${escapeHtml(b.name)}</div>${showProgress ? `<div class="progress-bar mt-1"><div class="progress-fill" style="width: ${progress}%"></div></div><span class="text-[8px] text-slate-400">${progress}%</span>` : ''}</div>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium">${escapeHtml(b.name)}</div>
+                        ${showProgress ? `<div class="progress-bar mt-1"><div class="progress-fill" style="width: ${progress}%"></div></div><span class="text-[8px] text-slate-400">${progress}%</span>` : ''}
+                    </div>
                     ${isCurrentUserManager() ? `<button onclick="deleteBoard(event, ${b.id})" class="text-slate-400 hover:text-red-500 text-xs">✕</button>` : ''}
                 </div>`;
             }).join('');
             
-            document.getElementById('board-list').innerHTML = `<div class="mb-4"><p class="text-xs font-bold text-slate-400 uppercase mb-2">📊 Em Andamento</p>${renderBoardList(activeBoards)}</div>${completedBoards.length ? `<div><p class="text-xs font-bold text-slate-400 uppercase mb-2">✅ Concluídos</p>${renderBoardList(completedBoards, false)}</div>` : ''}`;
-            document.getElementById('mobile-board-list').innerHTML = document.getElementById('board-list').innerHTML;
+            const boardsHtml = `<div class="mb-4"><p class="text-xs font-bold text-slate-400 uppercase mb-2">📊 Em Andamento</p>${renderBoardList(activeBoards)}</div>${completedBoards.length ? `<div><p class="text-xs font-bold text-slate-400 uppercase mb-2">✅ Concluídos</p>${renderBoardList(completedBoards, false)}</div>` : ''}`;
             
-            const membersHtml = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110 transition-transform" style="background: ${m.color}">${m.name.charAt(0)}</div>`).join('');
+            document.getElementById('board-list').innerHTML = boardsHtml;
+            document.getElementById('mobile-board-list').innerHTML = boardsHtml;
+            
+            const membersHtml = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110 transition-transform" style="background: ${m.color}" title="${escapeHtml(m.name)}">${m.name.charAt(0)}</div>`).join('');
             document.getElementById('sidebar-team').innerHTML = membersHtml;
             document.getElementById('mobile-sidebar-team').innerHTML = membersHtml;
         }
 
-        // --- RENDER HOME ---
+        // ==================== RENDER PRINCIPAL ====================
+        function render() {
+            if (!state.currentUser) return;
+            renderSidebar();
+            updateUIBasedOnPermissions();
+            
+            const container = document.getElementById('view-container');
+            if (!container) return;
+            
+            if (state.activeView === 'home') {
+                renderHome();
+                document.getElementById('bottom-home')?.classList.add('active');
+                document.getElementById('bottom-dash')?.classList.remove('active');
+                document.getElementById('bottom-team')?.classList.remove('active');
+                document.getElementById('bottom-reports')?.classList.remove('active');
+            } else if (state.activeView === 'dashboard') {
+                renderDashboard();
+                document.getElementById('bottom-dash')?.classList.add('active');
+                document.getElementById('bottom-home')?.classList.remove('active');
+                document.getElementById('bottom-team')?.classList.remove('active');
+                document.getElementById('bottom-reports')?.classList.remove('active');
+            } else if (state.activeView === 'team') {
+                renderTeamView();
+                document.getElementById('bottom-team')?.classList.add('active');
+                document.getElementById('bottom-home')?.classList.remove('active');
+                document.getElementById('bottom-dash')?.classList.remove('active');
+                document.getElementById('bottom-reports')?.classList.remove('active');
+            } else if (state.activeView === 'reports') {
+                renderReports();
+                document.getElementById('bottom-reports')?.classList.add('active');
+                document.getElementById('bottom-home')?.classList.remove('active');
+                document.getElementById('bottom-dash')?.classList.remove('active');
+                document.getElementById('bottom-team')?.classList.remove('active');
+            }
+        }
+        
         function renderHome() {
             const activeBoards = state.boards.filter(b => !isProjectCompleted(b));
-            document.getElementById('view-container').innerHTML = `
+            const container = document.getElementById('view-container');
+            
+            container.innerHTML = `
                 <div class="max-w-6xl mx-auto p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-6"><div><h1 class="text-2xl md:text-3xl font-black">Olá, ${escapeHtml(state.currentUser.name)}!</h1><p class="text-sm text-slate-500">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p></div>${isCurrentUserManager() ? '<button onclick="openNewProcessModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Novo</button>' : ''}</div>
-                    <div class="processos-grid">${activeBoards.map(b => {
-                        const tasks = b.groups?.flatMap(g => g.tasks || []) || [];
-                        const userTasks = filterTasksByUser(tasks);
-                        const dueStatus = userTasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
-                        const progress = calculateProjectProgress(b);
-                        return `<div onclick="selectBoard(${b.id})" class="process-card"><div class="text-2xl mb-2">📋</div><h3 class="font-bold text-base mb-2">${escapeHtml(b.name)}</h3><div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div><div class="text-xs text-slate-400 mb-3">${progress}% concluído</div><div class="space-y-1 text-xs"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Atrasados: ${dueStatus.filter(s => s.status === 'overdue').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span>Vencem hoje: ${dueStatus.filter(s => s.status === 'today').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Vencem em 7 dias: ${dueStatus.filter(s => s.status === 'week').length}</span></div></div><div class="mt-3 pt-2 flex justify-between text-xs border-t"><span>${tasks.length} tarefas</span><div class="flex -space-x-2">${state.team.slice(0,3).map(m => `<div class="w-5 h-5 rounded-full border-2 border-white" style="background: ${m.color}"></div>`).join('')}</div></div></div>`;
-                    }).join('')}</div>
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-black">Olá, ${escapeHtml(state.currentUser.name)}!</h1>
+                            <p class="text-sm text-slate-500">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p>
+                        </div>
+                        ${isCurrentUserManager() ? '<button onclick="openNewProcessModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Novo Projeto</button>' : ''}
+                    </div>
+                    <div class="processos-grid">
+                        ${activeBoards.map(b => {
+                            const tasks = b.groups?.flatMap(g => g.tasks || []) || [];
+                            const userTasks = filterTasksByUser(tasks);
+                            const dueStatus = userTasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
+                            const progress = calculateProjectProgress(b);
+                            return `<div onclick="selectBoard(${b.id})" class="process-card">
+                                <div class="text-3xl mb-2">📋</div>
+                                <h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3>
+                                <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div>
+                                <div class="text-xs text-slate-400 mb-3">${progress}% concluído</div>
+                                <div class="space-y-1 text-xs">
+                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Atrasados: ${dueStatus.filter(s => s.status === 'overdue').length}</span></div>
+                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span>Vencem hoje: ${dueStatus.filter(s => s.status === 'today').length}</span></div>
+                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Vencem em 7 dias: ${dueStatus.filter(s => s.status === 'week').length}</span></div>
+                                </div>
+                                <div class="mt-3 pt-2 flex justify-between items-center text-xs border-t border-slate-100 dark:border-slate-800">
+                                    <span>${tasks.length} tarefas</span>
+                                    <div class="flex -space-x-2">${state.team.slice(0,3).map(m => `<div class="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900" style="background: ${m.color}" title="${escapeHtml(m.name)}"></div>`).join('')}</div>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                        ${activeBoards.length === 0 ? '<div class="col-span-full text-center py-12 text-slate-400">Nenhum projeto em andamento</div>' : ''}
+                    </div>
                 </div>`;
         }
-
-        // --- RENDER OUTRAS VIEWS (manter do original) ---
-        function renderDashboard() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📊 Dashboard em desenvolvimento</div>'; }
-        function renderTeamView() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">👥 Gerenciar Equipe</div>'; }
-        function renderReports() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📈 Relatórios</div>'; }
-        function renderTable() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📋 Visualização Tabela</div>'; }
-        function renderKanban() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">🧱 Visualização Kanban</div>'; }
-        function renderGantt() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📅 Gráfico Gantt</div>'; }
-        function renderCalendar() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">🗓️ Calendário</div>'; }
-
-        // --- NAVEGAÇÃO ---
-        function changeMainView(view) {
-            state.activeView = view;
-            document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
-            if (view === 'home') { renderHome(); document.getElementById('bottom-home')?.classList.add('active'); }
-            else if (view === 'dashboard') { renderDashboard(); document.getElementById('bottom-dash')?.classList.add('active'); }
-            else if (view === 'team') { renderTeamView(); document.getElementById('bottom-team')?.classList.add('active'); }
-            else if (view === 'reports') { renderReports(); document.getElementById('bottom-reports')?.classList.add('active'); }
+        
+        function renderDashboard() {
+            document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📊 Dashboard em desenvolvimento</div>';
         }
-        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; renderTable(); }
-        function createNewBoard() { if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; } const name = prompt('Nome do projeto:'); if (!name) return; const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] }; state.boards.push(newBoard); salvarBoardIndividual(newBoard); render(); showToast(`Projeto "${name}" criado!`); }
-        function deleteBoard(e, id) { e.stopPropagation(); if (!confirm('Excluir projeto?')) return; state.boards = state.boards.filter(b => b.id !== id); deletarBoardMongo(id); render(); }
-        function openNewProcessModal() { document.getElementById('newProcessModal').classList.remove('hidden'); }
-        function closeNewProcessModal() { document.getElementById('newProcessModal').classList.add('hidden'); }
-        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); }
+        
+        function renderTeamView() {
+            if (!isCurrentUserManager()) {
+                document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Você não tem permissão</div>';
+                return;
+            }
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-4xl mx-auto p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-black">👥 Gerenciar Equipe</h2>
+                        <button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold">+ Adicionar</button>
+                    </div>
+                    <div class="space-y-3">
+                        ${state.team.map(m => `
+                            <div class="bg-white dark:bg-[#181829] p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div>
+                                    <div><div class="font-bold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div></div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="openEditMemberModal('${m.id}')" class="text-blue-500 text-xl">✏️</button>
+                                    ${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-red-500 text-xl">🗑️</button>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        }
+        
+        function renderReports() {
+            document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📈 Relatórios em desenvolvimento</div>';
+        }
 
-        // --- INICIALIZAÇÃO ---
+        // ==================== AÇÕES DE PROJETOS ====================
+        function selectBoard(id) { 
+            state.activeBoardId = id; 
+            state.activeView = 'board'; 
+            renderTable(); 
+        }
+        
+        function renderTable() {
+            document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📋 Visualização Tabela (em desenvolvimento)</div>';
+        }
+        
+        function createNewBoard() {
+            if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
+            const name = prompt('Nome do projeto:');
+            if (!name) return;
+            const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
+            state.boards.push(newBoard);
+            salvarBoardIndividual(newBoard);
+            render();
+            showToast(`Projeto "${name}" criado!`);
+        }
+        
+        function createNewBoardFromModal() {
+            const name = document.getElementById('newBoardName').value.trim();
+            if (!name) { alert('Digite o nome do projeto'); return; }
+            const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
+            state.boards.push(newBoard);
+            salvarBoardIndividual(newBoard);
+            closeNewProcessModal();
+            render();
+            showToast(`Projeto "${name}" criado!`);
+        }
+        
+        function openNewProcessModal() { document.getElementById('newProcessModal').classList.remove('hidden'); }
+        function closeNewProcessModal() { document.getElementById('newProcessModal').classList.add('hidden'); document.getElementById('newBoardName').value = ''; }
+        
+        function deleteBoard(e, id) {
+            e.stopPropagation();
+            if (!confirm('Excluir projeto?')) return;
+            state.boards = state.boards.filter(b => b.id !== id);
+            deletarBoardMongo(id);
+            render();
+        }
+        
+        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); }
+        
+        // ==================== INICIALIZAÇÃO ====================
         window.onload = async () => {
             await carregarDadosMongo();
-            if (state.boards.length === 0) {
+            
+            if (state.boards.length === 0 && state.team.length > 0) {
                 const today = new Date();
                 const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
                 state.boards = [{ id: Date.now(), name: 'Projeto de Exemplo', managerId: state.team[0]?.id, groups: [{ id: 'g1', name: 'Fase 1', color: '#0073ea', tasks: [{ id: 't1', title: 'Tarefa exemplo', ownerId: state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }] }] }];
             }
+            
             if (state.darkMode) document.documentElement.classList.add('dark');
             renderUserList();
             document.getElementById('loginModal').style.display = 'flex';
-            if (state.currentUser) { document.getElementById('loginModal').style.display = 'none'; updateUIBasedOnPermissions(); render(); }
-            renderSidebar();
+            
+            if (state.currentUser) {
+                document.getElementById('loginModal').style.display = 'none';
+                updateUIBasedOnPermissions();
+                render();
+                renderSidebar();
+            }
         };
     </script>
 </body>
