@@ -2,8 +2,10 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="theme-color" content="#0073ea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -387,13 +389,38 @@
         
         @media print { body * { visibility: hidden; } .report-section, .report-section * { visibility: visible; } .report-section { position: absolute; left: 0; top: 0; width: 100%; page-break-after: always; } .no-print { display: none !important; } }
         
-        /* Mobile Responsive */
+        /* Mobile Responsive - mantendo layout web original */
         @media (max-width: 768px) {
-            .sidebar-resizable { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s; }
+            .sidebar-resizable {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                background: white;
+            }
+            .dark .sidebar-resizable { background: #181829; }
             .sidebar-resizable.open { left: 0; }
-            .mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+            .mobile-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+                display: none;
+            }
             .mobile-overlay.open { display: block; }
+            .menu-toggle {
+                display: block;
+                cursor: pointer;
+            }
+            .desktop-only { display: none; }
             .process-card { padding: 16px; }
+            .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 769px) {
+            .menu-toggle, .mobile-overlay { display: none; }
         }
     </style>
 </head>
@@ -471,7 +498,7 @@
         <p class="text-sm text-slate-400">Aguarde enquanto preparamos seu relatório</p>
     </div>
 
-    <!-- AUTO-SAVE INDICATOR -->
+    <!-- AUTO-SAVE INDICATOR (desabilitado) -->
     <div id="autoSaveIndicator" class="auto-save-indicator" style="display: none;">
         <span>💾</span>
         <span>Salvo automaticamente</span>
@@ -485,22 +512,25 @@
                 <span class="font-black text-lg tracking-tight">Workspace<span class="text-monday-blue">Pro</span></span>
             </div>
             
-            <nav class="flex items-center gap-1">
+            <nav class="flex items-center gap-1 desktop-nav">
                 <button onclick="changeMainView('home')" id="btn-home" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">🏠 Início</button>
                 <button onclick="changeMainView('dashboard')" id="btn-dash" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">📊 Dashboard</button>
                 <button onclick="changeMainView('team')" id="btn-team" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">👥 Equipe</button>
                 <button onclick="changeMainView('reports')" id="btn-reports" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">📈 Relatórios</button>
             </nav>
+            
+            <!-- Menu Toggle para Mobile -->
+            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full" onclick="toggleMobileSidebar()">☰</button>
         </div>
 
         <div class="flex items-center gap-4">
             <div id="currentUserIndicator" class="current-user" onclick="toggleUserMenu()">
                 <div id="currentUserAvatar" class="current-user-avatar">?</div>
-                <span id="currentUserName" class="text-sm font-bold">Não logado</span>
+                <span id="currentUserName" class="text-sm font-bold hidden sm:inline">Não logado</span>
                 <span id="currentUserRole" class="permission-badge">-</span>
             </div>
             
-            <div id="networkMode" class="network-mode">📁 Local</div>
+            <div id="networkMode" class="network-mode">🌐 Online</div>
             
             <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">🌓</button>
             
@@ -512,8 +542,6 @@
                     📥 Importar <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
                 </label>
             </div>
-            
-            <button onclick="toggleAutoSave()" id="autoSaveBtn" class="text-[10px] font-bold uppercase p-2 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50">💾 Auto: ON</button>
         </div>
     </header>
 
@@ -542,11 +570,11 @@
         <div class="p-6" id="memberSidebarContent"></div>
     </div>
 
-    <!-- DROPDOWN PORTAL -->
-    <div id="dropdownPortal"></div>
-
     <!-- MOBILE OVERLAY -->
     <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- DROPDOWN PORTAL -->
+    <div id="dropdownPortal"></div>
 
     <!-- MAIN CONTAINER WITH RESIZABLE SIDEBAR -->
     <div class="resizable-container flex-1 overflow-hidden">
@@ -622,64 +650,11 @@
             currentUser: null,
             selectedUserId: null,
             tempUser: null,
-            autoSaveEnabled: true,
+            autoSaveEnabled: false,
             autoSaveInterval: null,
             currentFilePath: null,
             collapsedGroups: {},
-            team: [
-                { 
-                    id: 'm1', 
-                    username: 'gerente',
-                    name: 'João Silva', 
-                    password: btoa('123456'), 
-                    color: '#ffad00', 
-                    role: 'Gerente de Projetos',
-                    email: 'joao@empresa.com',
-                    phone: '(11) 99999-9999',
-                    cargo: 'Gerente de Projetos',
-                    type: 'manager',
-                    firstAccess: false
-                },
-                { 
-                    id: 'm2', 
-                    username: 'maria',
-                    name: 'Maria Souza', 
-                    password: btoa('123456'), 
-                    color: '#a25ddc', 
-                    role: 'Designer',
-                    email: 'maria@empresa.com',
-                    phone: '(11) 98888-8888',
-                    cargo: 'Designer UX',
-                    type: 'executor',
-                    firstAccess: true
-                },
-                { 
-                    id: 'm3', 
-                    username: 'carlos',
-                    name: 'Carlos Lima', 
-                    password: btoa('123456'), 
-                    color: '#00ca72', 
-                    role: 'Desenvolvedor',
-                    email: 'carlos@empresa.com',
-                    phone: '(11) 97777-7777',
-                    cargo: 'Desenvolvedor Frontend',
-                    type: 'executor',
-                    firstAccess: false
-                },
-                { 
-                    id: 'm4', 
-                    username: 'ana',
-                    name: 'Ana Paula', 
-                    password: btoa('123456'), 
-                    color: '#fb275d', 
-                    role: 'QA',
-                    email: 'ana@empresa.com',
-                    phone: '(11) 96666-6666',
-                    cargo: 'Analista de Qualidade',
-                    type: 'executor',
-                    firstAccess: false
-                }
-            ],
+            team: [],
             boards: []
         };
 
@@ -697,37 +672,8 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
-        // --- FUNÇÃO PARA CALCULAR STATUS DE PRAZO ---
-        function calculateDueDateStatus(dueDate, taskStatus) {
-            if (taskStatus === 'Concluido') {
-                return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
-            }
-            if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const due = new Date(dueDate); due.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)} dia(s)` };
-            if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
-            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays} dia(s)` };
-            return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
-        }
-
-        function calculateProjectProgress(board) {
-            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (allTasks.length === 0) return 0;
-            const completedTasks = allTasks.filter(t => t.status === 'Concluido').length;
-            return Math.round((completedTasks / allTasks.length) * 100);
-        }
-
-        function isProjectCompleted(board) {
-            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (allTasks.length === 0) return false;
-            return allTasks.every(t => t.status === 'Concluido');
-        }
-
         // --- FUNÇÕES DE UTILIDADE ---
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-
         function showToast(message, isError = false, bgColor = null) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -735,10 +681,33 @@
             toast.style.opacity = '1';
             setTimeout(() => { toast.style.opacity = '0'; toast.style.backgroundColor = '#1e293b'; toast.textContent = 'Alterações salvas!'; }, 3000);
         }
-
         function toggleGroup(groupId) { state.collapsedGroups[groupId] = !state.collapsedGroups[groupId]; render(); }
         function isGroupCollapsed(groupId) { return state.collapsedGroups[groupId] || false; }
         function changeMonth(delta) { if (!state.calendarDate) state.calendarDate = new Date(); state.calendarDate = new Date(state.calendarDate); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); render(); }
+
+        // --- FUNÇÕES DE CÁLCULO ---
+        function calculateDueDateStatus(dueDate, taskStatus) {
+            if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
+            if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
+            const today = new Date(); today.setHours(0,0,0,0);
+            const due = new Date(dueDate); due.setHours(0,0,0,0);
+            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)} dia(s)` };
+            if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
+            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays} dia(s)` };
+            return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
+        }
+        function calculateProjectProgress(board) {
+            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            if (allTasks.length === 0) return 0;
+            const completedTasks = allTasks.filter(t => t.status === 'Concluido').length;
+            return Math.round((completedTasks / allTasks.length) * 100);
+        }
+        function isProjectCompleted(board) {
+            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            if (allTasks.length === 0) return false;
+            return allTasks.every(t => t.status === 'Concluido');
+        }
 
         // --- FUNÇÕES DE API (MONGODB) ---
         async function carregarDadosMongo() {
@@ -746,38 +715,79 @@
                 console.log('Carregando dados do servidor...');
                 const response = await fetch('/api/dados');
                 const data = await response.json();
-                if (data.team && data.team.length > 0) state.team = data.team;
-                if (data.boards && data.boards.length > 0) state.boards = data.boards;
-                console.log('Dados carregados com sucesso');
+                
+                if (data.usuarios && data.usuarios.length > 0) {
+                    state.team = data.usuarios.map(u => ({
+                        id: u.id,
+                        username: u.username,
+                        name: u.name,
+                        password: u.password,
+                        color: u.color,
+                        role: u.role,
+                        email: u.email || '',
+                        phone: u.phone || '',
+                        cargo: u.cargo || u.role,
+                        type: u.type,
+                        firstAccess: u.firstAccess || false
+                    }));
+                    console.log(`✅ ${state.team.length} usuários carregados`);
+                }
+                
+                if (data.projetos && data.projetos.length > 0) {
+                    state.boards = data.projetos;
+                    console.log(`✅ ${state.boards.length} projetos carregados`);
+                }
+                
+                if (state.currentUser) render();
+                
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
             }
         }
 
         async function salvarEquipeMongo() {
-            try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) { console.error(e); }
+            try {
+                await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuarios: state.team })
+                });
+            } catch (error) { console.error(error); }
         }
 
         async function salvarBoardsMongo() {
-            try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) { console.error(e); }
+            try {
+                await fetch('/api/projetos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projetos: state.boards })
+                });
+            } catch (error) { console.error(error); }
         }
 
         async function salvarBoardIndividual(board) {
-            try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board) }); } catch(e) { console.error(e); }
+            try {
+                await fetch('/api/projeto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(board)
+                });
+            } catch (error) { console.error(error); }
         }
 
         async function deletarBoardMongo(id) {
-            try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) { console.error(e); }
+            try {
+                await fetch(`/api/projeto/${id}`, { method: 'DELETE' });
+            } catch (error) { console.error(error); }
         }
 
         async function save() {
             await Promise.all([salvarEquipeMongo(), salvarBoardsMongo()]);
             const indicator = document.getElementById('autoSaveIndicator');
-            indicator.style.display = 'flex';
-            setTimeout(() => indicator.style.display = 'none', 2000);
+            if (indicator) { indicator.style.display = 'flex'; setTimeout(() => indicator.style.display = 'none', 2000); }
         }
 
-        // --- SISTEMA DE ARQUIVO (para backup) ---
+        // --- SISTEMA DE ARQUIVO (backup) ---
         function openDatabaseFile() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -810,8 +820,8 @@
                 const fileName = state.currentFilePath || `workspace_${new Date().toISOString().split('T')[0]}.json`;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
                 a.download = fileName;
+                a.href = url;
                 a.click();
                 URL.revokeObjectURL(url);
                 state.currentFilePath = fileName;
@@ -918,8 +928,7 @@
             if (!password) { alert('Digite sua senha!'); return; }
             const user = state.team.find(u => u.id === state.selectedUserId);
             if (!user) { alert('Selecione um usuário!'); return; }
-            const hashedPassword = btoa(password);
-            if (user.password === hashedPassword) {
+            if (btoa(password) === user.password) {
                 if (user.firstAccess) {
                     state.tempUser = user;
                     document.getElementById('passwordModalTitle').textContent = '🔑 Primeiro Acesso';
@@ -940,10 +949,8 @@
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('loginPassword').value = '';
             updateUIBasedOnPermissions();
-            initAutoSave();
             detectEnvironment();
             render();
-            save();
             showToast(`Bem-vindo, ${user.name}!`);
         }
 
@@ -1000,7 +1007,7 @@
             if (indicator && !indicator.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden');
         });
 
-        // --- SISTEMA DE PERMISSÕES ---
+        // --- PERMISSÕES ---
         function isCurrentUserManager() { return state.currentUser && state.currentUser.type === 'manager'; }
 
         function updateUIBasedOnPermissions() {
@@ -1105,27 +1112,53 @@
             closeMemberModal();
             renderUserList();
             render();
+        }
+
+        // --- RESET PASSWORD ---
+        let currentResetPassword = '';
+        function resetUserPassword(userId) {
+            if (!isCurrentUserManager()) return;
+            const user = state.team.find(u => u.id === userId);
+            if (!user) return;
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$';
+            let newPassword = '';
+            for (let i = 0; i < 8; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+            user.password = btoa(newPassword);
+            user.firstAccess = true;
+            currentResetPassword = newPassword;
+            document.getElementById('resetUserName').textContent = `Nova senha para: ${user.name}`;
+            document.getElementById('newPasswordDisplay').textContent = newPassword;
+            document.getElementById('resetPasswordModal').classList.add('open');
             save();
         }
+        function copyNewPassword() { navigator.clipboard.writeText(currentResetPassword).then(() => showToast('📋 Senha copiada!')).catch(() => alert('Senha: ' + currentResetPassword)); }
+        function closeResetPasswordModal() { document.getElementById('resetPasswordModal').classList.remove('open'); currentResetPassword = ''; }
 
-        // --- AUTO-SAVE ---
-        function initAutoSave() {
-            if (state.autoSaveInterval) clearInterval(state.autoSaveInterval);
-            if (state.autoSaveEnabled) state.autoSaveInterval = setInterval(() => autoSave(), 30000);
+        // --- DELETE MEMBER ---
+        async function deleteMember(id) {
+            if (!isCurrentUserManager()) return;
+            if (state.team.length <= 1) return alert("A equipe deve ter pelo menos um membro.");
+            const member = state.team.find(m => m.id === id);
+            if (member.type === 'manager' && state.team.filter(m => m.type === 'manager').length <= 1) return alert("Não é possível remover o único gerente.");
+            if (!confirm(`Remover ${member.name} da equipe?`)) return;
+            const manager = state.team.find(m => m.type === 'manager');
+            if (manager) {
+                state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (t.ownerId === id) t.ownerId = manager.id; }); }); });
+            }
+            state.team = state.team.filter(m => m.id !== id);
+            await salvarEquipeMongo();
+            renderUserList();
+            render();
         }
 
-        function autoSave() {
-            if (!state.currentUser) return;
-            try { localStorage.setItem('workspace_backup', JSON.stringify(state)); } catch (error) { console.error(error); }
-        }
-
-        function toggleAutoSave() {
-            state.autoSaveEnabled = !state.autoSaveEnabled;
-            const btn = document.getElementById('autoSaveBtn');
-            btn.innerHTML = state.autoSaveEnabled ? '💾 Auto: ON' : '💾 Auto: OFF';
-            if (state.autoSaveEnabled) { initAutoSave(); showToast('Auto-save ativado'); }
-            else { if (state.autoSaveInterval) { clearInterval(state.autoSaveInterval); state.autoSaveInterval = null; } showToast('Auto-save desativado'); }
-            save();
+        // --- DETECÇÃO DE AMBIENTE ---
+        function detectEnvironment() {
+            const modeEl = document.getElementById('networkMode');
+            modeEl.innerHTML = '🌐 Online';
+            modeEl.style.background = '#10b98120';
+            modeEl.style.color = '#10b981';
+            modeEl.style.borderColor = '#10b981';
+            return 'online';
         }
 
         // --- RESIZABLE SIDEBAR ---
@@ -1177,16 +1210,6 @@
             setTimeout(() => { document.addEventListener('click', function closeDropdown(e) { if (!dropdown.contains(e.target) && e.target !== trigger) { dropdown.remove(); document.removeEventListener('click', closeDropdown); activeDropdown = null; } }); }, 100);
         }
 
-        // --- DETECÇÃO DE AMBIENTE ---
-        function detectEnvironment() {
-            const protocol = window.location.protocol;
-            const hostname = window.location.hostname;
-            const modeEl = document.getElementById('networkMode');
-            if (protocol === 'file:') { modeEl.innerHTML = '📁 Arquivo Local'; modeEl.style.background = '#94a3b820'; modeEl.style.color = '#64748b'; modeEl.style.borderColor = '#94a3b8'; return 'local'; }
-            else if (hostname === 'localhost' || hostname === '127.0.0.1') { modeEl.innerHTML = '🖥️ Servidor Local'; modeEl.style.background = '#3b82f620'; modeEl.style.color = '#3b82f6'; modeEl.style.borderColor = '#3b82f6'; return 'server'; }
-            else { modeEl.innerHTML = '🌐 Rede: ' + hostname; modeEl.style.background = '#10b98120'; modeEl.style.color = '#10b981'; modeEl.style.borderColor = '#10b981'; return 'network'; }
-        }
-
         // --- FUNÇÃO PARA CRIAR DADOS INICIAIS ---
         function createInitialMockData() {
             const today = new Date();
@@ -1196,14 +1219,14 @@
             return {
                 id: Date.now(),
                 name: 'Projeto de Exemplo',
-                managerId: 'm1',
+                managerId: state.team[0]?.id || 'm1',
                 groups: [
                     { id: 'g1', name: 'Fase 1: Estrutura', color: '#0073ea', tasks: [
-                        { id: 't1', title: 'Definir Requisitos', ownerId: 'm1', status: 'Trabalhando', priority: 'Alta', timeline: ['2023-11-01', '2023-11-05'] },
-                        { id: 't2', title: 'Aprovação de Orçamento', ownerId: 'm2', status: 'Concluido', priority: 'Critica', timeline: ['2023-10-25', '2023-10-30'] },
-                        { id: 't3', title: 'Implementar Frontend', ownerId: 'm3', status: 'Trabalhando', priority: 'Alta', timeline: [today.toISOString().split('T')[0], tomorrow.toISOString().split('T')[0]] },
-                        { id: 't4', title: 'Revisão de Código', ownerId: 'm2', status: 'Nao Iniciado', priority: 'Media', timeline: [yesterday.toISOString().split('T')[0], yesterday.toISOString().split('T')[0]] },
-                        { id: 't5', title: 'Testes de Integração', ownerId: 'm4', status: 'Trabalhando', priority: 'Critica', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }
+                        { id: 't1', title: 'Definir Requisitos', ownerId: state.team[0]?.id, status: 'Trabalhando', priority: 'Alta', timeline: ['2023-11-01', '2023-11-05'] },
+                        { id: 't2', title: 'Aprovação de Orçamento', ownerId: state.team[1]?.id, status: 'Concluido', priority: 'Critica', timeline: ['2023-10-25', '2023-10-30'] },
+                        { id: 't3', title: 'Implementar Frontend', ownerId: state.team[2]?.id, status: 'Trabalhando', priority: 'Alta', timeline: [today.toISOString().split('T')[0], tomorrow.toISOString().split('T')[0]] },
+                        { id: 't4', title: 'Revisão de Código', ownerId: state.team[1]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [yesterday.toISOString().split('T')[0], yesterday.toISOString().split('T')[0]] },
+                        { id: 't5', title: 'Testes de Integração', ownerId: state.team[3]?.id, status: 'Trabalhando', priority: 'Critica', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }
                     ] }
                 ]
             };
@@ -1215,10 +1238,9 @@
                 await carregarDadosMongo();
                 if (!state.collapsedGroups) state.collapsedGroups = {};
                 if (!state.calendarDate) state.calendarDate = new Date();
-                if (state.boards.length === 0) {
+                if (state.boards.length === 0 && state.team.length > 0) {
                     const mockBoard = createInitialMockData();
                     state.boards.push(mockBoard);
-                    console.log('Dados iniciais de exemplo criados');
                 }
                 if (state.darkMode) document.documentElement.classList.add('dark');
                 setTimeout(initResizable, 100);
@@ -1227,13 +1249,31 @@
                 if (state.currentUser) {
                     document.getElementById('loginModal').style.display = 'none';
                     updateUIBasedOnPermissions();
-                    initAutoSave();
                     render();
                 }
             } catch (error) { console.error('Erro ao carregar:', error); showToast('Erro ao carregar dados. Recarregue a página.', true); }
         };
 
-        // --- RENDERERS ---
+        function save() {} // Desabilitado
+
+        function render() {
+            if (!state.currentUser) return;
+            renderSidebar();
+            updateUIBasedOnPermissions();
+            const container = document.getElementById('view-container');
+            const header = document.getElementById('board-header');
+            if (!container) return;
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('text-monday-blue', 'bg-slate-50', 'dark:bg-slate-800'));
+            if (header) header.classList.add('hidden');
+            try {
+                if (state.activeView === 'home') { container.innerHTML = renderHome(); document.getElementById('btn-home')?.classList.add('text-monday-blue'); }
+                else if (state.activeView === 'dashboard') { container.innerHTML = renderDashboard(); document.getElementById('btn-dash')?.classList.add('text-monday-blue'); setTimeout(initDashboardCharts, 100); }
+                else if (state.activeView === 'team') { container.innerHTML = renderTeamView(); document.getElementById('btn-team')?.classList.add('text-monday-blue'); }
+                else if (state.activeView === 'reports') { container.innerHTML = renderReports(); document.getElementById('btn-reports')?.classList.add('text-monday-blue'); }
+                else if (state.activeView === 'board') { if (header) header.classList.remove('hidden'); updateBoardHeaderUI(); if (state.boardView === 'table') container.innerHTML = renderTable(); else if (state.boardView === 'kanban') container.innerHTML = renderKanban(); else if (state.boardView === 'gantt') container.innerHTML = renderGantt(); else if (state.boardView === 'calendar') container.innerHTML = renderCalendar(); }
+            } catch (error) { console.error('Erro ao renderizar:', error); container.innerHTML = '<div class="p-8 text-red-500">Erro ao carregar. Recarregue a página.</div>'; }
+        }
+
         function renderSidebar() {
             const list = document.getElementById('board-list');
             if (!list) return;
@@ -1352,7 +1392,7 @@
                                     </tr>`;
                                 }).join('')}
                                 ${isManager ? `<tr><td colspan="9" class="p-2"><button onclick="addNewTask('${g.id}')" class="w-full py-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-slate-400 text-xs font-bold hover:bg-slate-50 transition-colors">+ Adicionar Tarefa</button></td></tr>` : ''}
-                            </tbody></table>
+                            </tbody>
                         </div>
                     </div>
                 </div>`;
@@ -1411,9 +1451,9 @@
         }
 
         // --- HANDLERS ---
-        function changeMainView(v) { state.activeView = v; state.searchQuery = ''; render(); save(); }
-        function changeView(v) { state.boardView = v; render(); save(); }
-        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); save(); }
+        function changeMainView(v) { state.activeView = v; state.searchQuery = ''; render(); }
+        function changeView(v) { state.boardView = v; render(); }
+        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); }
         function filterTasks(val) { state.searchQuery = val; render(); }
         function updateBoardHeaderUI() {
             const b = state.boards.find(b => b.id === state.activeBoardId);
@@ -1423,10 +1463,10 @@
             const managerSel = document.getElementById('board-manager');
             if (managerSel && isCurrentUserManager()) managerSel.innerHTML = state.team.map(m => `<option value="${m.id}" ${b.managerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('');
         }
-        function updateBoardManager(mId) { if (!isCurrentUserManager()) return; const b = state.boards.find(b => b.id === state.activeBoardId); if (b) { b.managerId = mId; save(); } }
-        async function deleteBoard(e, id) { e.stopPropagation(); if (!isCurrentUserManager()) return; if(!confirm("Deseja realmente excluir este quadro?")) return; state.boards = state.boards.filter(b => b.id !== id); if (state.activeBoardId === id) state.activeView = 'home'; await deletarBoardMongo(id); render(); save(); }
+        function updateBoardManager(mId) { if (!isCurrentUserManager()) return; const b = state.boards.find(b => b.id === state.activeBoardId); if (b) { b.managerId = mId; salvarBoardIndividual(b); } }
+        async function deleteBoard(e, id) { e.stopPropagation(); if (!isCurrentUserManager()) return; if(!confirm("Deseja realmente excluir este quadro?")) return; state.boards = state.boards.filter(b => b.id !== id); if (state.activeBoardId === id) state.activeView = 'home'; await deletarBoardMongo(id); render(); }
         function deleteActiveBoard() { if (!isCurrentUserManager()) return; deleteBoard({stopPropagation: ()=>{}}, state.activeBoardId); }
-        async function renameBoard(newVal) { if (!isCurrentUserManager()) return; const b = state.boards.find(b => b.id === state.activeBoardId); if (b) { b.name = newVal; await salvarBoardIndividual(b); save(); } }
+        async function renameBoard(newVal) { if (!isCurrentUserManager()) return; const b = state.boards.find(b => b.id === state.activeBoardId); if (b) { b.name = newVal; await salvarBoardIndividual(b); } }
         async function updateTask(gId, tId, field, val) {
             const b = state.boards.find(b => b.id === state.activeBoardId);
             if (!b) return;
@@ -1466,7 +1506,6 @@
             g.tasks.push(newTask);
             await salvarBoardIndividual(b);
             render();
-            save();
         }
         async function deleteTask(gId, tId) {
             if (!isCurrentUserManager()) return;
@@ -1477,7 +1516,6 @@
             g.tasks = (g.tasks || []).filter(t => t.id != tId);
             await salvarBoardIndividual(b);
             render();
-            save();
         }
         async function addNewGroup() {
             if (!isCurrentUserManager()) return;
@@ -1488,7 +1526,6 @@
             b.groups.push(newGroup);
             await salvarBoardIndividual(b);
             render();
-            save();
             showToast(`Grupo "${newGroup.name}" criado!`);
         }
         async function deleteGroup(groupId) {
@@ -1502,7 +1539,6 @@
             board.groups = board.groups.filter(g => g.id != groupId);
             await salvarBoardIndividual(board);
             render();
-            save();
             showToast(`Grupo "${group.name}" excluído com sucesso!`);
         }
         async function renameGroup(gId, newVal) {
@@ -1510,8 +1546,12 @@
             const b = state.boards.find(b => b.id === state.activeBoardId);
             if (!b) return;
             const g = b.groups.find(g => g.id == gId);
-            if (g) { g.name = newVal; await salvarBoardIndividual(b); save(); }
+            if (g) { g.name = newVal; await salvarBoardIndividual(b); }
         }
+
+        // --- MOVER TAREFAS ---
+        async function moveTaskUp(groupId, taskId) { if (!isCurrentUserManager()) { showToast('Apenas gerentes podem reorganizar tarefas', true); return; } const board = state.boards.find(b => b.id === state.activeBoardId); if (!board) return; const group = board.groups.find(g => g.id == groupId); if (!group) return; const taskIndex = group.tasks.findIndex(t => t.id == taskId); if (taskIndex <= 0) return; [group.tasks[taskIndex - 1], group.tasks[taskIndex]] = [group.tasks[taskIndex], group.tasks[taskIndex - 1]]; await salvarBoardIndividual(board); render(); showToast('Tarefa movida para cima'); }
+        async function moveTaskDown(groupId, taskId) { if (!isCurrentUserManager()) { showToast('Apenas gerentes podem reorganizar tarefas', true); return; } const board = state.boards.find(b => b.id === state.activeBoardId); if (!board) return; const group = board.groups.find(g => g.id == groupId); if (!group) return; const taskIndex = group.tasks.findIndex(t => t.id == taskId); if (taskIndex >= group.tasks.length - 1) return; [group.tasks[taskIndex], group.tasks[taskIndex + 1]] = [group.tasks[taskIndex + 1], group.tasks[taskIndex]]; await salvarBoardIndividual(board); render(); showToast('Tarefa movida para baixo'); }
 
         // --- DASHBOARD ---
         function initDashboardCharts() {
@@ -1655,41 +1695,20 @@
             return calendarHTML;
         }
 
-        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); save(); }
+        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); }
 
-        // --- MOVER TAREFAS ---
-        async function moveTaskUp(groupId, taskId) { if (!isCurrentUserManager()) { showToast('Apenas gerentes podem reorganizar tarefas', true); return; } const board = state.boards.find(b => b.id === state.activeBoardId); if (!board) return; const group = board.groups.find(g => g.id == groupId); if (!group) return; const taskIndex = group.tasks.findIndex(t => t.id == taskId); if (taskIndex <= 0) return; [group.tasks[taskIndex - 1], group.tasks[taskIndex]] = [group.tasks[taskIndex], group.tasks[taskIndex - 1]]; await salvarBoardIndividual(board); render(); showToast('Tarefa movida para cima'); }
-        async function moveTaskDown(groupId, taskId) { if (!isCurrentUserManager()) { showToast('Apenas gerentes podem reorganizar tarefas', true); return; } const board = state.boards.find(b => b.id === state.activeBoardId); if (!board) return; const group = board.groups.find(g => g.id == groupId); if (!group) return; const taskIndex = group.tasks.findIndex(t => t.id == taskId); if (taskIndex >= group.tasks.length - 1) return; [group.tasks[taskIndex], group.tasks[taskIndex + 1]] = [group.tasks[taskIndex + 1], group.tasks[taskIndex]]; await salvarBoardIndividual(board); render(); showToast('Tarefa movida para baixo'); }
-
-        // --- RESET PASSWORD ---
-        let currentResetPassword = '';
-        function resetUserPassword(userId) { if (!isCurrentUserManager()) return; const user = state.team.find(u => u.id === userId); if (!user) return; const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$'; let newPassword = ''; for (let i = 0; i < 8; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length)); user.password = btoa(newPassword); user.firstAccess = true; currentResetPassword = newPassword; document.getElementById('resetUserName').textContent = `Nova senha para: ${user.name}`; document.getElementById('newPasswordDisplay').textContent = newPassword; document.getElementById('resetPasswordModal').classList.add('open'); save(); }
-        function copyNewPassword() { navigator.clipboard.writeText(currentResetPassword).then(() => showToast('📋 Senha copiada!')).catch(() => alert('Senha: ' + currentResetPassword)); }
-        function closeResetPasswordModal() { document.getElementById('resetPasswordModal').classList.remove('open'); currentResetPassword = ''; }
-
-        // --- DELETE MEMBER ---
-        async function deleteMember(id) { if (!isCurrentUserManager()) return; if (state.team.length <= 1) return alert("A equipe deve ter pelo menos um membro."); const member = state.team.find(m => m.id === id); if (member.type === 'manager' && state.team.filter(m => m.type === 'manager').length <= 1) return alert("Não é possível remover o único gerente. Promova outro membro a gerente primeiro."); if (!confirm(`Remover ${member.name} da equipe?`)) return; const manager = state.team.find(m => m.type === 'manager'); if (manager) { state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (t.ownerId === id) t.ownerId = manager.id; }); }); }); } state.team = state.team.filter(m => m.id !== id); await salvarEquipeMongo(); renderUserList(); render(); save(); }
-
-        // --- RENDER ---
-        function render() {
-            if (!state.currentUser) return;
-            renderSidebar();
-            updateUIBasedOnPermissions();
-            const container = document.getElementById('view-container');
-            const header = document.getElementById('board-header');
-            if (!container) return;
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('text-monday-blue', 'bg-slate-50', 'dark:bg-slate-800'));
-            if (header) header.classList.add('hidden');
-            try {
-                if (state.activeView === 'home') { container.innerHTML = renderHome(); document.getElementById('btn-home')?.classList.add('text-monday-blue'); }
-                else if (state.activeView === 'dashboard') { container.innerHTML = renderDashboard(); document.getElementById('btn-dash')?.classList.add('text-monday-blue'); setTimeout(initDashboardCharts, 100); }
-                else if (state.activeView === 'team') { container.innerHTML = renderTeamView(); document.getElementById('btn-team')?.classList.add('text-monday-blue'); }
-                else if (state.activeView === 'reports') { container.innerHTML = renderReports(); document.getElementById('btn-reports')?.classList.add('text-monday-blue'); }
-                else if (state.activeView === 'board') { if (header) header.classList.remove('hidden'); updateBoardHeaderUI(); if (state.boardView === 'table') container.innerHTML = renderTable(); else if (state.boardView === 'kanban') container.innerHTML = renderKanban(); else if (state.boardView === 'gantt') container.innerHTML = renderGantt(); else if (state.boardView === 'calendar') container.innerHTML = renderCalendar(); }
-            } catch (error) { console.error('Erro ao renderizar:', error); container.innerHTML = '<div class="p-8 text-red-500">Erro ao carregar. Recarregue a página.</div>'; }
+        // CREATE NEW BOARD
+        async function createNewBoard() {
+            if (!isCurrentUserManager()) { showToast('Apenas gerentes podem criar projetos', true); return; }
+            const name = prompt("Nome do novo projeto:", "Meu Projeto");
+            if (!name) return;
+            const newBoard = { id: Date.now(), name: name, managerId: state.currentUser.id, groups: [] };
+            state.boards.push(newBoard);
+            await salvarBoardIndividual(newBoard);
+            selectBoard(newBoard.id);
+            showToast(`✅ Projeto "${name}" criado com sucesso!`);
         }
 
-        // Fechar dropdown ao clicar fora
         document.addEventListener('click', (e) => { if (!e.target.classList.contains('status-trigger')) closeActiveDropdown(); });
     </script>
 </body>
