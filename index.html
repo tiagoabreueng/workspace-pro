@@ -753,39 +753,63 @@
 
         // --- FUNÇÕES DE API (MONGODB) ---
         async function carregarDadosMongo() {
-            try {
-                console.log('Carregando dados do servidor...');
-                const response = await fetch('/api/dados');
-                const data = await response.json();
-                
-                if (data.usuarios && data.usuarios.length > 0) {
-                    state.team = data.usuarios.map(u => ({
-                        id: u.id,
-                        username: u.username,
-                        name: u.name,
-                        password: u.password,
-                        color: u.color,
-                        role: u.role,
-                        email: u.email || '',
-                        phone: u.phone || '',
-                        cargo: u.cargo || u.role,
-                        type: u.type,
-                        firstAccess: u.firstAccess || false
-                    }));
-                    console.log(`✅ ${state.team.length} usuários carregados`);
-                }
-                
-                if (data.projetos && data.projetos.length > 0) {
-                    state.boards = data.projetos;
-                    console.log(`✅ ${state.boards.length} projetos carregados`);
-                }
-                
-                if (state.currentUser) render();
-                
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-            }
+    try {
+        console.log('Carregando dados do servidor...');
+        const response = await fetch('/api/dados');
+        const data = await response.json();
+        console.log('Dados recebidos:', data);
+        
+        // O servidor pode retornar "usuarios" ou "team"
+        if (data.usuarios && data.usuarios.length > 0) {
+            state.team = data.usuarios.map(u => ({
+                id: u.id,
+                username: u.username,
+                name: u.name,
+                password: u.password,
+                color: u.color,
+                role: u.role,
+                email: u.email || '',
+                phone: u.phone || '',
+                cargo: u.cargo || u.role,
+                type: u.type,
+                firstAccess: u.firstAccess || false
+            }));
+            console.log(`✅ ${state.team.length} usuários carregados via "usuarios"`);
+        } else if (data.team && data.team.length > 0) {
+            state.team = data.team;
+            console.log(`✅ ${state.team.length} usuários carregados via "team"`);
         }
+        
+        // O servidor pode retornar "projetos" ou "boards"
+        if (data.projetos && data.projetos.length > 0) {
+            state.boards = data.projetos;
+            console.log(`✅ ${state.boards.length} projetos carregados via "projetos"`);
+        } else if (data.boards && data.boards.length > 0) {
+            state.boards = data.boards;
+            console.log(`✅ ${state.boards.length} projetos carregados via "boards"`);
+        }
+        
+        // Se não carregou usuários, usar dados mockados para teste
+        if (state.team.length === 0) {
+            console.log('⚠️ Nenhum usuário carregado, usando dados mockados');
+            state.team = [
+                { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário de Obras', email: 'tiago@empresa.com', type: 'manager', firstAccess: false },
+                { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', type: 'executor', firstAccess: false }
+            ];
+        }
+        
+        if (state.currentUser) render();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        // Fallback para dados mockados em caso de erro
+        state.team = [
+            { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário de Obras', type: 'manager', firstAccess: false },
+            { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', type: 'executor', firstAccess: false }
+        ];
+        showToast('Erro ao conectar ao servidor, usando dados locais', true);
+    }
+}
 
         async function salvarEquipeMongo() {
             try {
