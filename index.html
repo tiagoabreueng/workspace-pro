@@ -11,10 +11,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* Todos os estilos do original */
+        /* Estilos base */
         * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Figtree', sans-serif; }
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        body { font-family: 'Figtree', sans-serif; touch-action: pan-y pinch-zoom; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
         
@@ -47,14 +47,15 @@
         .bottom-nav-item span:last-child { font-size: 10px; font-weight: 600; }
         
         /* Cards */
-        .process-card { background: white; border-radius: 20px; padding: 18px; border: 1px solid #e2e8f0; cursor: pointer; }
+        .process-card { background: white; border-radius: 20px; padding: 18px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
         .dark .process-card { background: #181829; border-color: #2d2d3f; }
+        .process-card:active { transform: scale(0.98); }
         .processos-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 640px) { .processos-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .processos-grid { grid-template-columns: repeat(3, 1fr); } }
         
         .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; }
+        .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; transition: width 0.3s ease; }
         
         /* Modais */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); padding: 16px; }
@@ -65,24 +66,27 @@
         .login-box { background: white; border-radius: 32px; padding: 32px 24px; width: 100%; max-width: 400px; }
         .dark .login-box { background: #181829; border: 1px solid #2d2d3f; }
         
-        .user-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border: 2px solid transparent; border-radius: 16px; }
+        .user-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border: 2px solid transparent; border-radius: 16px; transition: all 0.2s; }
         .user-item.selected { border-color: #0073ea; background: #e6f0ff; }
         .current-user { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; background: #f1f5f9; border-radius: 40px; cursor: pointer; }
         .dark .current-user { background: #1e1e2e; }
         
-        .btn-primary { background: #0073ea; color: white; padding: 12px 24px; border-radius: 40px; font-weight: 600; text-align: center; min-height: 44px; }
-        .btn-outline { background: transparent; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 40px; font-weight: 600; }
+        .btn-primary { background: #0073ea; color: white; padding: 12px 24px; border-radius: 40px; font-weight: 600; text-align: center; min-height: 44px; transition: all 0.2s; }
+        .btn-primary:active { transform: scale(0.97); background: #005bb5; }
+        .btn-outline { background: transparent; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 40px; font-weight: 600; text-align: center; min-height: 44px; }
         .dark .btn-outline { border-color: #2d2d3f; color: #e2e8f0; }
         
         .resizable-container { display: flex; height: 100%; position: relative; }
         .resize-handle { position: absolute; right: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; background: transparent; z-index: 100; }
         .resize-handle:hover { background: #0073ea; }
         
-        .status-trigger { cursor: pointer; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
+        .status-trigger { cursor: pointer; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; transition: filter 0.2s; }
+        .status-trigger:active { filter: brightness(0.9); }
         .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); padding: 4px; min-width: 180px; }
         .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
-        .member-sidebar { position: fixed; right: -500px; top: 0; width: 100%; max-width: 480px; height: 100vh; background: white; z-index: 99999; transition: right 0.3s; overflow-y: auto; }
-        .dark .member-sidebar { background: #181829; }
+        
+        .member-sidebar { position: fixed; right: -500px; top: 0; width: 100%; max-width: 480px; height: 100vh; background: white; z-index: 99999; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; }
+        .dark .member-sidebar { background: #181829; border-left: 1px solid #2d2d3f; }
         .member-sidebar.open { right: 0; }
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99998; display: none; }
         .sidebar-overlay.open { display: block; }
@@ -90,14 +94,34 @@
         .status-tag-overdue { background: #fb275d20; color: #fb275d; border-left: 3px solid #fb275d; }
         .status-tag-today { background: #ffad0020; color: #ffad00; border-left: 3px solid #ffad00; }
         .status-tag-week { background: #0073ea20; color: #0073ea; border-left: 3px solid #0073ea; }
+        
         .gantt-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; max-height: 600px; }
         .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
         .table-container { overflow-x: auto; border-radius: 12px; }
         table { min-width: 800px; border-collapse: collapse; }
-        th, td { padding: 10px 6px; }
+        th, td { padding: 10px 6px; vertical-align: middle; }
+        input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; width: 85px; }
+        
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
         .info-item { background: #f8fafc; padding: 12px; border-radius: 12px; }
         .dark .info-item { background: #1e1e2e; }
+        .info-label { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; }
+        .info-value { font-size: 14px; font-weight: 600; }
+        
+        .board-name { word-break: break-word; white-space: normal; line-height: 1.3; }
+        .group-collapse-btn { cursor: pointer; font-size: 16px; margin-right: 8px; color: #64748b; transition: transform 0.2s; display: inline-block; }
+        .group-collapse-btn.collapsed { transform: rotate(-90deg); }
+        .group-content { transition: all 0.3s ease; }
+        .group-content.collapsed { display: none; }
+        .group-delete-btn { opacity: 0; transition: opacity 0.2s; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; margin-left: 8px; }
+        .group-header:hover .group-delete-btn { opacity: 1; }
+        
+        .move-task-btn { opacity: 0; transition: opacity 0.2s; background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+        tr:hover .move-task-btn { opacity: 1; }
+        
+        .auto-save-indicator { position: fixed; bottom: 80px; right: 20px; background: #10b981; color: white; padding: 10px 18px; border-radius: 40px; font-size: 12px; font-weight: bold; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        
+        .priority-badge { font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -128,7 +152,7 @@
                 <div id="currentUserIndicator" class="current-user" onclick="toggleUserMenu()">
                     <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">?</div>
                     <span id="currentUserName" class="text-sm font-bold hidden sm:inline">Não logado</span>
-                    <span id="currentUserRole" class="permission-badge hidden sm:inline text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">-</span>
+                    <span id="currentUserRole" class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full hidden sm:inline">-</span>
                 </div>
                 <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-xl">🌓</button>
                 <div class="flex gap-1">
@@ -211,7 +235,7 @@
     <div id="memberSidebar" class="member-sidebar"><div class="p-6 border-b"><div class="flex items-center gap-3"><div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div><div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div><button onclick="closeMemberSidebar()" class="ml-auto text-2xl">&times;</button></div><div id="sidebarMemberInfo" class="info-grid mt-4"></div></div><div class="p-6" id="memberSidebarContent"></div></div>
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 transition-all duration-300 z-[9999]">Alterações salvas!</div>
     <div id="dropdownPortal"></div>
-    <div id="autoSaveIndicator" class="fixed bottom-20 right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm hidden">💾 Salvo</div>
+    <div id="autoSaveIndicator" class="auto-save-indicator hidden">💾 Salvo</div>
 
     <script>
         // ==================== ESTRUTURA DE DADOS ====================
@@ -335,7 +359,7 @@
             showToast(`Bem-vindo, ${user.name}!`);
         }
         function openPasswordModal() { document.getElementById('userMenu').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('hidden'); }
-        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); document.getElementById('senhaAtual').value = ''; document.getElementById('senhaNova').value = ''; document.getElementById('senhaConfirmar').value = ''; }
         async function alterarSenha() {
             const atual = document.getElementById('senhaAtual').value;
             const nova = document.getElementById('senhaNova').value;
@@ -499,6 +523,7 @@
         }
         
         function renderReports() {
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
             document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📈 Relatórios em desenvolvimento</div>';
         }
         
@@ -509,7 +534,7 @@
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) { renderHome(); return; }
             document.getElementById('view-container').innerHTML = `
-                <div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black">${escapeHtml(board.name)}</h2></div>
+                <div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black">${escapeHtml(board.name)}</h2>${isCurrentUserManager() ? `<button onclick="addNewGroup()" class="ml-auto bg-monday-blue text-white px-3 py-1 rounded-full text-xs">+ Grupo</button>` : ''}</div>
                 <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
                 <div id="board-content"></div></div>`;
             setBoardView(state.boardView);
@@ -532,32 +557,41 @@
             const isManager = isCurrentUserManager();
             const statusOptions = Object.entries(STATUS_TYPES).map(([k,v]) => ({value:k, label:v.label, color:v.color}));
             const priorityOptions = Object.entries(PRIORITY_TYPES).map(([k,v]) => ({value:k, label:v.label, color:v.color}));
-            return `<div class="space-y-6">${board.groups?.map(g => {
+            return `<div class="space-y-6">${board.groups?.map((g, gIdx) => {
                 const tasks = g.tasks || [];
                 const filtered = filterTasksByUser(tasks);
-                return `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="p-3 border-b flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${g.color}"></span><h3 class="font-bold">${escapeHtml(g.name)}</h3><span class="text-xs text-slate-400">${tasks.length} tarefas</span></div><div class="overflow-x-auto"><table class="w-full"><thead><tr class="text-xs text-slate-400 border-b"><th class="p-2 text-left">Tarefa</th><th class="p-2">Responsável</th><th class="p-2">Status</th><th class="p-2">Prioridade</th><th class="p-2">Prazo</th>${isManager ? '<th class="p-2"></th>' : ''}</tr></thead><tbody>${filtered.map(t => {
+                const isCollapsed = state.collapsedGroups[g.id] || false;
+                return `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="p-3 border-b flex items-center gap-2 group-header">
+                    <span onclick="toggleGroup('${g.id}')" class="group-collapse-btn ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                    <span class="w-3 h-3 rounded-full" style="background:${g.color}"></span>
+                    <h3 class="font-bold flex-1" ${isManager ? 'contenteditable="true"' : ''} onblur="renameGroup('${g.id}', this.innerText)">${escapeHtml(g.name)}</h3>
+                    <span class="text-xs text-slate-400">${tasks.length} tarefas</span>
+                    ${isManager ? `<button onclick="deleteGroup('${g.id}')" class="group-delete-btn text-red-400 text-xs">🗑️</button>` : ''}
+                </div><div class="group-content ${isCollapsed ? 'collapsed' : ''}"><div class="overflow-x-auto"><table class="w-full"><thead><tr class="text-xs text-slate-400 border-b"><th class="p-2 w-8"></th><th class="p-2 text-left">Tarefa</th><th class="p-2">Responsável</th><th class="p-2">Status</th><th class="p-2">Prioridade</th><th class="p-2">Cronograma</th><th class="p-2">Prazo</th>${isManager ? '<th class="p-2"></th>' : ''}</tr></thead><tbody>${filtered.map((t, tIdx, arr) => {
                     const dueStatus = calculateDueDateStatus(t.timeline?.[1], t.status);
                     const canEdit = canEditTask(t);
                     const owner = state.team.find(m => m.id === t.ownerId);
-                    return `<tr class="border-t"><td class="p-2"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTaskField('${g.id}','${t.id}','title',this.value)"` : 'disabled'} class="bg-transparent w-full outline-none ${!canEdit ? 'opacity-50' : ''}"></td>
+                    return `<tr class="border-t"><td class="p-2"><div class="flex gap-1">${isManager && tIdx > 0 ? `<button onclick="moveTaskUp('${g.id}','${t.id}')" class="move-task-btn">⬆️</button>` : ''}${isManager && tIdx < arr.length-1 ? `<button onclick="moveTaskDown('${g.id}','${t.id}')" class="move-task-btn">⬇️</button>` : ''}</div></td>
+                    <td class="p-2"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTaskField('${g.id}','${t.id}','title',this.value)"` : 'disabled'} class="bg-transparent w-full outline-none ${!canEdit ? 'opacity-50' : ''}"></td>
                     <td class="p-2"><select ${isManager ? `onchange="updateTaskField('${g.id}','${t.id}','ownerId',this.value)"` : 'disabled'} class="bg-transparent text-xs">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${m.name}</option>`).join('')}</select></td>
                     <td class="p-2"><div class="status-trigger" style="background:${STATUS_TYPES[t.status]?.color}" ${canEdit ? `onclick='showStatusDropdown(this, "${g.id}", "${t.id}")'` : ''}>${STATUS_TYPES[t.status]?.label}</div></td>
                     <td class="p-2"><div class="status-trigger" style="background:${PRIORITY_TYPES[t.priority]?.color}" ${isManager ? `onclick='showPriorityDropdown(this, "${g.id}", "${t.id}")'` : ''}>${PRIORITY_TYPES[t.priority]?.label}</div></td>
-                    <td class="p-2"><div class="flex items-center gap-1 text-xs"><input type="date" value="${t.timeline?.[1] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}','${t.id}',1,this.value)"` : 'disabled'} class="bg-transparent w-24"></div><div class="text-[10px] ${dueStatus.class} px-1 rounded">${dueStatus.label}</div></td>
+                    <td class="p-2"><div class="flex items-center gap-1 text-xs"><input type="date" value="${t.timeline?.[0] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}','${t.id}',0,this.value)"` : 'disabled'} class="bg-transparent w-20"> - <input type="date" value="${t.timeline?.[1] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}','${t.id}',1,this.value)"` : 'disabled'} class="bg-transparent w-20"></div></td>
+                    <td class="p-2"><div class="text-[10px] ${dueStatus.class} px-1 rounded text-center">${dueStatus.label}</div></td>
                     ${isManager ? `<td class="p-2"><button onclick="deleteTask('${g.id}','${t.id}')" class="text-red-400">🗑️</button></td>` : ''}</tr>`;
-                }).join('')}</tbody></table></div>${isManager ? `<div class="p-3 border-t"><button onclick="addNewTask('${g.id}')" class="text-monday-blue text-sm">+ Adicionar tarefa</button></div>` : ''}</div>`;
+                }).join('')}</tbody></table></div>${isManager ? `<div class="p-3 border-t"><button onclick="addNewTask('${g.id}')" class="text-monday-blue text-sm">+ Adicionar tarefa</button></div>` : ''}</div></div>`;
             }).join('')}</div>`;
         }
         
         function renderKanban(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color}))) || [];
             const filtered = filterTasksByUser(tasks);
-            return `<div class="flex gap-4 overflow-x-auto pb-4">${Object.entries(STATUS_TYPES).map(([key,info]) => `<div class="min-w-[280px] bg-slate-50 dark:bg-slate-800/30 rounded-xl p-3"><div class="flex justify-between mb-3"><h3 class="font-bold">${info.label}</h3><span class="text-xs text-slate-400">${filtered.filter(t=>t.status===key).length}</span></div><div class="space-y-2">${filtered.filter(t=>t.status===key).map(t => `<div class="bg-white dark:bg-[#181829] p-3 rounded-lg shadow-sm"><div class="font-bold text-sm">${escapeHtml(t.title)}</div><div class="flex justify-between mt-2 text-xs"><span class="priority-badge" style="background:${PRIORITY_TYPES[t.priority]?.color}20; color:${PRIORITY_TYPES[t.priority]?.color}">${t.priority}</span><div class="w-6 h-6 rounded-full bg-${state.team.find(m=>m.id===t.ownerId)?.color} text-white text-center text-xs leading-6">${state.team.find(m=>m.id===t.ownerId)?.name?.charAt(0)}</div></div>${canEditTask(t) ? `<div class="mt-2"><div class="status-trigger text-xs py-1 px-2" style="background:${info.color}" onclick='showStatusDropdown(this, "${t.groupId || t.groupName}", "${t.id}")'>${info.label} ▼</div></div>` : ''}</div>`).join('')}</div></div>`).join('')}</div>`;
+            return `<div class="flex gap-4 overflow-x-auto pb-4">${Object.entries(STATUS_TYPES).map(([key,info]) => `<div class="min-w-[280px] bg-slate-50 dark:bg-slate-800/30 rounded-xl p-3"><div class="flex justify-between mb-3"><h3 class="font-bold">${info.label}</h3><span class="text-xs text-slate-400">${filtered.filter(t=>t.status===key).length}</span></div><div class="space-y-2">${filtered.filter(t=>t.status===key).map(t => `<div class="bg-white dark:bg-[#181829] p-3 rounded-lg shadow-sm cursor-pointer" onclick="showTaskDetail('${t.id}')"><div class="font-bold text-sm">${escapeHtml(t.title)}</div><div class="flex justify-between mt-2 text-xs"><span class="priority-badge" style="background:${PRIORITY_TYPES[t.priority]?.color}20; color:${PRIORITY_TYPES[t.priority]?.color}">${t.priority}</span><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${state.team.find(m=>m.id===t.ownerId)?.color}">${state.team.find(m=>m.id===t.ownerId)?.name?.charAt(0)}</div></div>${canEditTask(t) ? `<div class="mt-2"><div class="status-trigger text-xs py-1 px-2" style="background:${info.color}" onclick='event.stopPropagation();showStatusDropdown(this, "${t.groupId || t.groupName}", "${t.id}")'>${info.label} ▼</div></div>` : ''}</div>`).join('')}</div></div>`).join('')}</div>`;
         }
         
         function renderGantt(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name}))) || [];
-            if (!tasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa</div>';
+            if (!tasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa com datas definidas</div>';
             const today = new Date(); today.setHours(0,0,0,0);
             const dates = tasks.flatMap(t => t.timeline || []).filter(d=>d).map(d=>new Date(d));
             const start = new Date(Math.min(...dates.map(d=>d.getTime()), today.getTime()));
@@ -566,11 +600,12 @@
             end.setDate(end.getDate() + 30);
             const days = []; let cur = new Date(start);
             while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-            return `<div class="gantt-container"><div class="flex border-b sticky top-0 bg-white dark:bg-[#181829]"><div class="w-64 p-2 font-bold">Tarefa</div><div class="flex overflow-x-auto">${days.map(d => `<div class="w-12 text-center text-[10px] p-1 border-r ${d.getDay()===0||d.getDay()===6 ? 'bg-slate-100 dark:bg-slate-800' : ''} ${d.toDateString()===today.toDateString() ? 'bg-blue-100 dark:bg-blue-900/30 font-bold text-monday-blue' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>${tasks.map(t => {
+            return `<div class="gantt-container"><div class="flex border-b sticky top-0 bg-white dark:bg-[#181829]"><div class="w-64 p-2 font-bold text-sm">Tarefa</div><div class="flex overflow-x-auto">${days.map(d => `<div class="w-12 text-center text-[10px] p-1 border-r ${d.getDay()===0||d.getDay()===6 ? 'bg-slate-100 dark:bg-slate-800' : ''} ${d.toDateString()===today.toDateString() ? 'bg-blue-100 dark:bg-blue-900/30 font-bold text-monday-blue' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>${tasks.map(t => {
                 if (!t.timeline?.[0] || !t.timeline?.[1]) return '';
                 const startOff = Math.max(0, Math.floor((new Date(t.timeline[0]) - start) / (1000*60*60*24)));
                 const dur = Math.max(1, Math.ceil((new Date(t.timeline[1]) - new Date(t.timeline[0])) / (1000*60*60*24)) + 1);
-                return `<div class="flex border-b"><div class="w-64 p-2 text-sm truncate">${escapeHtml(t.title)}</div><div class="relative" style="width:${days.length*48}px; height:40px"><div class="absolute rounded-full h-6 top-1 bg-${STATUS_TYPES[t.status]?.color || '#c4c4c4'} text-white text-[10px] flex items-center px-2" style="left:${startOff*48}px; width:${dur*48}px; background:${STATUS_TYPES[t.status]?.color || '#c4c4c4'}">${t.status}</div></div></div>`;
+                if (startOff > days.length) return '';
+                return `<div class="flex border-b"><div class="w-64 p-2 text-sm truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div><div class="relative" style="width:${days.length*48}px; height:40px"><div class="absolute rounded-full h-6 top-1 text-white text-[10px] flex items-center px-2" style="left:${startOff*48}px; width:${dur*48}px; background:${STATUS_TYPES[t.status]?.color || '#c4c4c4'}">${STATUS_TYPES[t.status]?.label || t.status}</div>${(()=>{const todayOff = Math.floor((today-start)/(1000*60*60*24)); if(todayOff>=0 && todayOff<days.length) return `<div class="absolute top-0 bottom-0 w-0.5 bg-red-500" style="left:${todayOff*48}px"></div>`; return '';})()}</div></div>`;
             }).join('')}</div>`;
         }
         
@@ -592,11 +627,11 @@
                     }
                 }
             });
-            let html = `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="flex justify-between p-4 border-b"><button onclick="changeMonth(-1)" class="p-2">◀</button><h3 class="font-bold">${new Date(year, month).toLocaleDateString('pt', {month:'long', year:'numeric'})}</h3><button onclick="changeMonth(1)" class="p-2">▶</button></div><div class="grid grid-cols-7 text-center py-2 text-xs font-bold text-slate-400"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="grid grid-cols-7">`;
+            let html = `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="flex justify-between p-4 border-b"><button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full">◀</button><h3 class="font-bold">${new Date(year, month).toLocaleDateString('pt', {month:'long', year:'numeric'})}</h3><button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full">▶</button></div><div class="grid grid-cols-7 text-center py-2 text-xs font-bold text-slate-400"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="grid grid-cols-7">`;
             for (let i=0; i<firstDay; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
             for (let d=1; d<=daysInMonth; d++) {
                 const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-                html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}"><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`;
+                html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}"><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`;
             }
             const remaining = 42 - (firstDay + daysInMonth);
             for (let i=0; i<remaining; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
@@ -604,7 +639,7 @@
             return html;
         }
         
-        function changeMonth(delta) { state.calendarDate = new Date(state.calendarDate || new Date()); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); renderBoardContent(); }
+        function changeMonth(delta) { state.calendarDate = state.calendarDate || new Date(); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); renderBoardContent(); }
         
         // ==================== AÇÕES DE TAREFAS ====================
         async function updateTaskField(gId, tId, field, val) {
@@ -645,6 +680,7 @@
             group.tasks.push({ id: 't' + Date.now() + Math.random(), title: 'Nova Tarefa', ownerId: state.team.find(m => m.type === 'executor')?.id || state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] });
             await salvarBoard(board);
             renderBoardContent();
+            showToast('✅ Tarefa adicionada');
         }
         async function deleteTask(gId, tId) {
             if (!isCurrentUserManager()) return;
@@ -655,6 +691,7 @@
             group.tasks = group.tasks.filter(t => t.id != tId);
             await salvarBoard(board);
             renderBoardContent();
+            showToast('✅ Tarefa removida');
         }
         async function addNewGroup() {
             if (!isCurrentUserManager()) return;
@@ -664,6 +701,7 @@
             board.groups.push({ id: Date.now() + Math.random(), name: 'Novo Grupo', color: '#' + Math.floor(Math.random()*16777215).toString(16), tasks: [] });
             await salvarBoard(board);
             renderBoardContent();
+            showToast('✅ Grupo adicionado');
         }
         async function deleteGroup(gId) {
             if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
@@ -675,6 +713,7 @@
             board.groups = board.groups.filter(g => g.id != gId);
             await salvarBoard(board);
             renderBoardContent();
+            showToast('✅ Grupo excluído');
         }
         async function renameGroup(gId, newName) {
             if (!isCurrentUserManager()) return;
@@ -683,7 +722,33 @@
             const group = board.groups.find(g => g.id == gId);
             if (group) { group.name = newName; await salvarBoard(board); renderBoardContent(); }
         }
-        async function salvarBoard(board) { await salvarBoardIndividual(board); }
+        
+        async function moveTaskUp(gId, tId) {
+            if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            const idx = group.tasks.findIndex(t => t.id == tId);
+            if (idx <= 0) return;
+            [group.tasks[idx-1], group.tasks[idx]] = [group.tasks[idx], group.tasks[idx-1]];
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function moveTaskDown(gId, tId) {
+            if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            const idx = group.tasks.findIndex(t => t.id == tId);
+            if (idx >= group.tasks.length-1) return;
+            [group.tasks[idx], group.tasks[idx+1]] = [group.tasks[idx+1], group.tasks[idx]];
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        
+        function toggleGroup(gId) { state.collapsedGroups[gId] = !state.collapsedGroups[gId]; renderBoardContent(); }
         
         // ==================== CRIAÇÃO DE PROJETOS ====================
         function openNewProcessModal() { document.getElementById('newProcessModal').classList.remove('hidden'); }
