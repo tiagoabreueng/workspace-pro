@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="theme-color" content="#0073ea">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,320 +11,93 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* Estilos base */
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        body {
-            font-family: 'Figtree', sans-serif;
-            touch-action: pan-y pinch-zoom;
-        }
-        
-        /* Custom Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        /* Todos os estilos do original */
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Figtree', sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
         
-        /* Sidebar desktop (fixa) */
-        .sidebar-resizable {
-            position: relative;
-            min-width: 180px;
-            max-width: 400px;
-            width: 240px;
-            transition: none;
-            background: white;
-            height: 100%;
-            overflow-y: auto;
-        }
+        /* Sidebar desktop */
+        .sidebar-resizable { position: relative; min-width: 180px; max-width: 400px; width: 240px; background: white; height: 100%; overflow-y: auto; }
         .dark .sidebar-resizable { background: #181829; }
         
-        /* Mobile Sidebar (colapsável) */
+        /* Mobile Sidebar */
         @media (max-width: 768px) {
-            .sidebar-resizable {
-                position: fixed;
-                left: -280px;
-                top: 0;
-                height: 100vh;
-                z-index: 1000;
-                transition: left 0.3s ease;
-                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-            }
+            .sidebar-resizable { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
             .sidebar-resizable.open { left: 0; }
-            .mobile-overlay {
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 999;
-                display: none;
-            }
+            .mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
             .mobile-overlay.open { display: block; }
-            .menu-toggle {
-                display: block;
-                cursor: pointer;
-            }
+            .menu-toggle { display: block; cursor: pointer; }
             .desktop-nav { display: none; }
             .bottom-nav { display: flex; }
             .process-card { padding: 16px; }
+            .resize-handle { display: none; }
         }
-        
-        @media (min-width: 769px) {
-            .menu-toggle, .mobile-overlay, .bottom-nav { display: none; }
-        }
+        @media (min-width: 769px) { .menu-toggle, .mobile-overlay, .bottom-nav { display: none; } }
         
         /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #e2e8f0;
-            z-index: 100;
-            padding: 8px 16px;
-            padding-bottom: env(safe-area-inset-bottom);
-            justify-content: space-around;
-            align-items: center;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; z-index: 100; padding: 8px 16px; justify-content: space-around; align-items: center; }
         .dark .bottom-nav { background: #181829; border-color: #2d2d3f; }
-        
-        .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 6px 12px;
-            border-radius: 30px;
-            transition: all 0.2s;
-            min-width: 60px;
-            background: transparent;
-            color: #64748b;
-        }
+        .bottom-nav-item { display: flex; flex-direction: column; align-items: center; padding: 6px 12px; border-radius: 30px; min-width: 60px; color: #64748b; }
         .dark .bottom-nav-item { color: #94a3b8; }
-        .bottom-nav-item.active {
-            background: #e6f0ff;
-            color: #0073ea;
-        }
-        .dark .bottom-nav-item.active {
-            background: #1e293b;
-            color: #60a5fa;
-        }
+        .bottom-nav-item.active { background: #e6f0ff; color: #0073ea; }
+        .dark .bottom-nav-item.active { background: #1e293b; color: #60a5fa; }
         .bottom-nav-item span:first-child { font-size: 22px; }
         .bottom-nav-item span:last-child { font-size: 10px; font-weight: 600; }
         
-        /* Cards de processo */
-        .process-card {
-            background: white;
-            border-radius: 20px;
-            padding: 18px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-        }
+        /* Cards */
+        .process-card { background: white; border-radius: 20px; padding: 18px; border: 1px solid #e2e8f0; cursor: pointer; }
         .dark .process-card { background: #181829; border-color: #2d2d3f; }
-        .process-card:active { transform: scale(0.98); }
-        
-        /* Grid responsivo */
-        .processos-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-        }
+        .processos-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 640px) { .processos-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .processos-grid { grid-template-columns: repeat(3, 1fr); } }
         
-        /* Status tags */
-        .status-tag-overdue { background: #fb275d20; color: #fb275d; border-left: 3px solid #fb275d; }
-        .status-tag-today { background: #ffad0020; color: #ffad00; border-left: 3px solid #ffad00; }
-        .status-tag-week { background: #0073ea20; color: #0073ea; border-left: 3px solid #0073ea; }
-        
-        /* Prioridade badges */
-        .priority-badge { font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
-        
-        /* Login modal */
-        .login-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999999;
-            backdrop-filter: blur(5px);
-            padding: 16px;
-        }
-        .login-box {
-            background: white;
-            border-radius: 32px;
-            padding: 32px 24px;
-            width: 100%;
-            max-width: 400px;
-        }
-        .dark .login-box { background: #181829; border: 1px solid #2d2d3f; }
-        
-        /* User item */
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            border-radius: 16px;
-            transition: all 0.2s;
-        }
-        .user-item:active { background: #f1f5f9; }
-        .user-item.selected { border-color: #0073ea; background: #e6f0ff; }
-        
-        /* Current user */
-        .current-user {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px 6px 6px;
-            background: #f1f5f9;
-            border-radius: 40px;
-            cursor: pointer;
-        }
-        .dark .current-user { background: #1e1e2e; }
-        
-        /* Auto-save */
-        .auto-save-indicator {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            background: #10b981;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 40px;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 9999;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        /* Botões touch-friendly */
-        .btn-touch { min-height: 44px; padding: 12px 20px; }
-        .btn-primary {
-            background: #0073ea;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.2s;
-            min-height: 44px;
-        }
-        .btn-primary:active { transform: scale(0.97); background: #005bb5; }
-        .btn-outline {
-            background: transparent;
-            border: 2px solid #e2e8f0;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: 600;
-            text-align: center;
-            min-height: 44px;
-        }
-        .dark .btn-outline { border-color: #2d2d3f; color: #e2e8f0; }
-        
-        /* Filtros */
-        .filter-tag {
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            background: white;
-            border: 1px solid #e2e8f0;
-            white-space: nowrap;
-        }
-        .dark .filter-tag { background: #1e293b; border-color: #334155; }
-        .filter-tag.active { background: #0073ea; color: white; border-color: #0073ea; }
-        
-        /* Abas */
-        .tab-btn {
-            padding: 8px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 30px;
-            cursor: pointer;
-            text-align: center;
-            background: white;
-            border: 1px solid #e2e8f0;
-        }
-        .dark .tab-btn { background: #1e293b; border-color: #334155; }
-        .tab-btn.active { background: #0073ea; color: white; border-color: #0073ea; }
-        
-        /* Progress bar */
         .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; transition: width 0.3s ease; }
+        .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; }
         
-        /* Modal responsivo */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            padding: 16px;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 28px;
-            width: 100%;
-            max-width: 500px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 24px;
-        }
+        /* Modais */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); padding: 16px; }
+        .modal-content { background: white; border-radius: 28px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 24px; }
         .dark .modal-content { background: #181829; border: 1px solid #2d2d3f; }
         
-        /* Resize handle (desktop) */
-        .resize-handle {
-            position: absolute;
-            right: -3px;
-            top: 0;
-            width: 6px;
-            height: 100%;
-            cursor: col-resize;
-            background: transparent;
-            z-index: 100;
-        }
-        .resize-handle:hover { background: #0073ea; }
-        @media (max-width: 768px) { .resize-handle { display: none; } }
+        .login-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 999999; backdrop-filter: blur(5px); padding: 16px; }
+        .login-box { background: white; border-radius: 32px; padding: 32px 24px; width: 100%; max-width: 400px; }
+        .dark .login-box { background: #181829; border: 1px solid #2d2d3f; }
         
-        /* Outros estilos */
-        .board-name { word-break: break-word; white-space: normal; line-height: 1.3; }
+        .user-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border: 2px solid transparent; border-radius: 16px; }
+        .user-item.selected { border-color: #0073ea; background: #e6f0ff; }
+        .current-user { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; background: #f1f5f9; border-radius: 40px; cursor: pointer; }
+        .dark .current-user { background: #1e1e2e; }
+        
+        .btn-primary { background: #0073ea; color: white; padding: 12px 24px; border-radius: 40px; font-weight: 600; text-align: center; min-height: 44px; }
+        .btn-outline { background: transparent; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 40px; font-weight: 600; }
+        .dark .btn-outline { border-color: #2d2d3f; color: #e2e8f0; }
+        
         .resizable-container { display: flex; height: 100%; position: relative; }
+        .resize-handle { position: absolute; right: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; background: transparent; z-index: 100; }
+        .resize-handle:hover { background: #0073ea; }
+        
+        .status-trigger { cursor: pointer; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
         .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); padding: 4px; min-width: 180px; }
         .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
-        .status-trigger { cursor: pointer; transition: filter 0.2s; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
-        
-        /* Table responsivo */
-        .table-container { overflow-x: auto; border-radius: 12px; }
-        table { min-width: 800px; border-collapse: collapse; }
-        th, td { padding: 10px 6px; vertical-align: middle; }
-        input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; width: 80px; }
-        
-        /* Sidebar de membros */
-        .member-sidebar { position: fixed; right: -500px; top: 0; width: 100%; max-width: 480px; height: 100vh; background: white; z-index: 99999; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; }
-        .dark .member-sidebar { background: #181829; border-left: 1px solid #2d2d3f; }
+        .member-sidebar { position: fixed; right: -500px; top: 0; width: 100%; max-width: 480px; height: 100vh; background: white; z-index: 99999; transition: right 0.3s; overflow-y: auto; }
+        .dark .member-sidebar { background: #181829; }
         .member-sidebar.open { right: 0; }
         .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99998; display: none; }
         .sidebar-overlay.open { display: block; }
+        
+        .status-tag-overdue { background: #fb275d20; color: #fb275d; border-left: 3px solid #fb275d; }
+        .status-tag-today { background: #ffad0020; color: #ffad00; border-left: 3px solid #ffad00; }
+        .status-tag-week { background: #0073ea20; color: #0073ea; border-left: 3px solid #0073ea; }
+        .gantt-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; max-height: 600px; }
+        .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
+        .table-container { overflow-x: auto; border-radius: 12px; }
+        table { min-width: 800px; border-collapse: collapse; }
+        th, td { padding: 10px 6px; }
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
         .info-item { background: #f8fafc; padding: 12px; border-radius: 12px; }
         .dark .info-item { background: #1e1e2e; }
-        .info-label { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; }
-        .info-value { font-size: 14px; font-weight: 600; }
-        
-        /* Gantt e outros */
-        .gantt-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; max-height: 600px; }
-        .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -338,74 +110,70 @@
             <div id="userList" class="max-h-64 overflow-y-auto mb-4 space-y-2"></div>
             <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl mb-4 bg-transparent" disabled>
             <button onclick="handleLogin()" id="loginButton" class="w-full btn-primary" disabled>Entrar</button>
-            <p class="text-xs text-center text-slate-400 mt-4">Usuários: tiagoabreu, andresasso, erikacampanha, etc. • Senha: 123456</p>
+            <p class="text-xs text-center text-slate-400 mt-4">Senha padrão: 123456</p>
         </div>
     </div>
 
-    <!-- TOP NAVIGATION -->
+    <!-- HEADER -->
     <header class="bg-white dark:bg-[#181829] border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
         <div class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <button id="menuToggle" class="menu-toggle p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-2xl" onclick="toggleMobileSidebar()">☰</button>
+                <button class="menu-toggle p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-2xl" onclick="toggleMobileSidebar()">☰</button>
                 <div class="flex items-center gap-2 cursor-pointer" onclick="changeMainView('home')">
                     <div class="w-8 h-8 bg-gradient-to-br from-monday-blue to-monday-purple rounded-xl flex items-center justify-center text-white font-bold shadow">W</div>
                     <span class="font-black text-lg tracking-tight">Workspace<span class="text-monday-blue">Pro</span></span>
                 </div>
             </div>
-            
             <div class="flex items-center gap-2">
                 <div id="currentUserIndicator" class="current-user" onclick="toggleUserMenu()">
                     <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">?</div>
                     <span id="currentUserName" class="text-sm font-bold hidden sm:inline">Não logado</span>
+                    <span id="currentUserRole" class="permission-badge hidden sm:inline text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">-</span>
                 </div>
                 <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-xl">🌓</button>
-                <button onclick="openNewProcessModal()" class="bg-monday-blue text-white p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl shadow-md md:hidden">+</button>
+                <div class="flex gap-1">
+                    <button onclick="openDatabaseFile()" class="text-[10px] font-bold p-2 border rounded-md hover:bg-slate-50">📁</button>
+                    <button onclick="saveDatabaseFile()" class="text-[10px] font-bold p-2 bg-green-500 text-white rounded-md">💾</button>
+                </div>
             </div>
         </div>
-        
         <nav class="desktop-nav flex items-center gap-1 px-4 pb-2">
-            <button onclick="changeMainView('home')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-home">🏠 Início</button>
-            <button onclick="changeMainView('dashboard')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-dash">📊 Dashboard</button>
-            <button onclick="changeMainView('team')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-team">👥 Equipe</button>
-            <button onclick="changeMainView('reports')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800" id="btn-reports">📈 Relatórios</button>
+            <button onclick="changeMainView('home')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100" id="btn-home">🏠 Início</button>
+            <button onclick="changeMainView('dashboard')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100" id="btn-dash">📊 Dashboard</button>
+            <button onclick="changeMainView('team')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100" id="btn-team">👥 Equipe</button>
+            <button onclick="changeMainView('reports')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100" id="btn-reports">📈 Relatórios</button>
         </nav>
     </header>
 
     <!-- MOBILE SIDEBAR -->
     <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
-    <aside id="mobileSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
+    <aside id="mobileSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r flex flex-col p-4 overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Quadros</h3>
-            <button onclick="closeMobileSidebar()" class="text-2xl text-slate-400 hover:text-slate-600">&times;</button>
+            <h3 class="text-xs font-bold text-slate-400 uppercase">Quadros</h3>
+            <button onclick="closeMobileSidebar()" class="text-2xl text-slate-400">&times;</button>
         </div>
-        <div id="mobile-board-list" class="space-y-2 text-sm font-medium mb-8"></div>
-        
-        <div class="mt-auto border-t border-slate-100 dark:border-slate-800 pt-4">
-            <div class="flex items-center justify-between gap-2 text-xs text-slate-400 font-bold uppercase mb-4">
-                <span>Membros Ativos</span>
-                <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110 transition-transform">+</button>
+        <div id="mobile-board-list" class="space-y-2 mb-8"></div>
+        <div class="mt-auto border-t pt-4">
+            <div class="flex justify-between mb-4 text-xs text-slate-400 uppercase font-bold">
+                <span>Membros</span>
+                <button onclick="openAddMemberModal()" class="text-monday-blue">+</button>
             </div>
             <div id="mobile-sidebar-team" class="flex flex-wrap gap-1"></div>
-        </div>
-        
-        <div class="mt-4 pt-4 flex gap-2">
-            <button onclick="saveDatabaseFile()" class="flex-1 bg-green-500 text-white py-2 rounded-xl text-sm font-bold">💾 Salvar BD</button>
-            <button onclick="openDatabaseFile()" class="flex-1 border border-slate-300 py-2 rounded-xl text-sm font-bold">📂 Abrir BD</button>
         </div>
     </aside>
 
     <!-- DESKTOP SIDEBAR -->
     <div class="resizable-container flex-1 overflow-hidden">
-        <aside id="desktopSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Quadros</h3>
-                <button onclick="createNewBoard()" class="text-monday-blue text-xl hover:scale-110 transition-transform" id="newBoardBtn">+</button>
+        <aside id="desktopSidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r flex flex-col p-4 overflow-y-auto">
+            <div class="flex justify-between mb-6">
+                <h3 class="text-xs font-bold text-slate-400 uppercase">Quadros</h3>
+                <button onclick="createNewBoard()" class="text-monday-blue text-xl" id="newBoardBtn">+</button>
             </div>
-            <div id="board-list" class="space-y-2 text-sm font-medium mb-8"></div>
-            <div class="mt-auto border-t border-slate-100 dark:border-slate-800 pt-4">
-                <div class="flex items-center justify-between gap-2 text-xs text-slate-400 font-bold uppercase mb-4">
-                    <span>Membros Ativos</span>
-                    <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110 transition-transform" id="addMemberBtn">+</button>
+            <div id="board-list" class="space-y-2 mb-8"></div>
+            <div class="mt-auto border-t pt-4">
+                <div class="flex justify-between mb-4 text-xs text-slate-400 uppercase font-bold">
+                    <span>Membros</span>
+                    <button onclick="openAddMemberModal()" class="text-monday-blue" id="addMemberBtn">+</button>
                 </div>
                 <div id="sidebar-team" class="flex flex-wrap gap-1"></div>
             </div>
@@ -417,226 +185,97 @@
 
     <!-- BOTTOM NAVIGATION -->
     <div class="bottom-nav">
-        <button onclick="changeMainView('home')" class="bottom-nav-item" id="bottom-home">
-            <span>🏠</span>
-            <span>Início</span>
-        </button>
-        <button onclick="changeMainView('dashboard')" class="bottom-nav-item" id="bottom-dash">
-            <span>📊</span>
-            <span>Dashboard</span>
-        </button>
-        <button onclick="changeMainView('team')" class="bottom-nav-item" id="bottom-team">
-            <span>👥</span>
-            <span>Equipe</span>
-        </button>
-        <button onclick="changeMainView('reports')" class="bottom-nav-item" id="bottom-reports">
-            <span>📈</span>
-            <span>Relatórios</span>
-        </button>
-        <button onclick="openNewProcessModal()" class="bottom-nav-item bg-monday-blue text-white rounded-full w-12 h-12 flex items-center justify-center -mt-6 shadow-lg">
-            <span class="text-2xl">+</span>
-        </button>
+        <button onclick="changeMainView('home')" class="bottom-nav-item" id="bottom-home"><span>🏠</span><span>Início</span></button>
+        <button onclick="changeMainView('dashboard')" class="bottom-nav-item" id="bottom-dash"><span>📊</span><span>Dashboard</span></button>
+        <button onclick="changeMainView('team')" class="bottom-nav-item" id="bottom-team"><span>👥</span><span>Equipe</span></button>
+        <button onclick="changeMainView('reports')" class="bottom-nav-item" id="bottom-reports"><span>📈</span><span>Relatórios</span></button>
+        <button onclick="openNewProcessModal()" class="bottom-nav-item bg-monday-blue text-white rounded-full w-12 h-12 flex items-center justify-center -mt-6 shadow-lg"><span class="text-2xl">+</span></button>
     </div>
 
     <!-- MODAIS -->
     <div id="newProcessModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="text-2xl font-black mb-6">📄 Novo Projeto</h2>
-            <input type="text" id="newBoardName" placeholder="Nome do projeto *" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl bg-transparent">
-            <div class="flex gap-3 mt-6">
-                <button onclick="createNewBoardFromModal()" class="flex-1 btn-primary py-3">Criar</button>
-                <button onclick="closeNewProcessModal()" class="flex-1 btn-outline py-3">Cancelar</button>
-            </div>
-        </div>
+        <div class="modal-content"><h2 class="text-2xl font-black mb-6">📄 Novo Projeto</h2><input type="text" id="newBoardName" placeholder="Nome do projeto *" class="w-full p-4 border rounded-xl bg-transparent"><div class="flex gap-3 mt-6"><button onclick="createNewBoardFromModal()" class="flex-1 btn-primary py-3">Criar</button><button onclick="closeNewProcessModal()" class="flex-1 btn-outline py-3">Cancelar</button></div></div>
     </div>
-
-    <div id="memberModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden backdrop-blur-sm">
+    <div id="memberModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden">
         <div class="bg-white dark:bg-[#181829] rounded-2xl w-full max-w-lg p-8 max-h-[90vh] overflow-y-auto">
             <h2 id="memberModalTitle" class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
-            <input type="hidden" id="memberId">
-            <input type="text" id="memberName" placeholder="Nome completo *" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <input type="text" id="memberUsername" placeholder="Nome de usuário *" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <select id="memberType" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-                <option value="executor">Executor</option>
-                <option value="manager">Gerente</option>
-            </select>
-            <button onclick="saveMember()" class="w-full btn-primary py-3 mt-4">Salvar</button>
-            <button onclick="closeMemberModal()" class="w-full mt-2 text-slate-500 py-2">Cancelar</button>
+            <input type="hidden" id="memberId"><input type="text" id="memberName" placeholder="Nome *" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><input type="text" id="memberUsername" placeholder="Usuário *" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><select id="memberType" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><option value="executor">Executor</option><option value="manager">Gerente</option></select>
+            <button onclick="saveMember()" class="w-full btn-primary py-3">Salvar</button><button onclick="closeMemberModal()" class="w-full mt-2 text-slate-500 py-2">Cancelar</button>
         </div>
     </div>
-
-    <div id="passwordModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden backdrop-blur-sm">
-        <div class="bg-white dark:bg-[#181829] rounded-2xl w-full max-w-lg p-8">
-            <h2 class="text-2xl font-black mb-6">🔑 Alterar Senha</h2>
-            <input type="password" id="senhaAtual" placeholder="Senha atual" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <input type="password" id="senhaNova" placeholder="Nova senha" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <input type="password" id="senhaConfirmar" placeholder="Confirmar" class="w-full p-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg mb-3 bg-transparent">
-            <button onclick="alterarSenha()" class="w-full btn-primary py-3 mt-4">Alterar</button>
-            <button onclick="closePasswordModal()" class="w-full mt-2 btn-outline py-3">Cancelar</button>
-        </div>
+    <div id="passwordModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] hidden">
+        <div class="bg-white dark:bg-[#181829] rounded-2xl w-full max-w-lg p-8"><h2 class="text-2xl font-black mb-6">🔑 Alterar Senha</h2><input type="password" id="senhaAtual" placeholder="Senha atual" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><input type="password" id="senhaNova" placeholder="Nova senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><input type="password" id="senhaConfirmar" placeholder="Confirmar" class="w-full p-3 border rounded-lg mb-3 bg-transparent"><button onclick="alterarSenha()" class="w-full btn-primary py-3">Alterar</button><button onclick="closePasswordModal()" class="w-full mt-2 btn-outline py-3">Cancelar</button></div>
     </div>
-
-    <div id="userMenu" class="hidden absolute right-4 top-14 bg-white dark:bg-[#181829] border rounded-xl shadow-lg z-50 w-40">
-        <button onclick="openPasswordModal()" class="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">🔑 Alterar Senha</button>
-        <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button>
-    </div>
-
+    <div id="userMenu" class="hidden absolute right-4 top-14 bg-white dark:bg-[#181829] border rounded-xl shadow-lg z-50 w-40"><button onclick="openPasswordModal()" class="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 rounded-lg">🔑 Alterar Senha</button><button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button></div>
     <div id="memberSidebarOverlay" class="sidebar-overlay" onclick="closeMemberSidebar()"></div>
-    <div id="memberSidebar" class="member-sidebar">
-        <div class="p-6 border-b border-slate-200 dark:border-slate-800">
-            <div class="flex items-center gap-3">
-                <div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div>
-                <div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div>
-                <button onclick="closeMemberSidebar()" class="ml-auto text-2xl text-slate-400">&times;</button>
-            </div>
-            <div id="sidebarMemberInfo" class="info-grid mt-4"></div>
-        </div>
-        <div class="p-6" id="memberSidebarContent"></div>
-    </div>
-
-    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-[9999]">Alterações salvas!</div>
+    <div id="memberSidebar" class="member-sidebar"><div class="p-6 border-b"><div class="flex items-center gap-3"><div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div><div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div><button onclick="closeMemberSidebar()" class="ml-auto text-2xl">&times;</button></div><div id="sidebarMemberInfo" class="info-grid mt-4"></div></div><div class="p-6" id="memberSidebarContent"></div></div>
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 transition-all duration-300 z-[9999]">Alterações salvas!</div>
     <div id="dropdownPortal"></div>
-    <div id="autoSaveIndicator" class="auto-save-indicator hidden">💾 Salvo</div>
+    <div id="autoSaveIndicator" class="fixed bottom-20 right-4 bg-green-500 text-white px-4 py-2 rounded-full text-sm hidden">💾 Salvo</div>
 
     <script>
         // ==================== ESTRUTURA DE DADOS ====================
         let state = {
-            version: '1.0.0',
-            lastModified: new Date().toISOString(),
-            activeView: 'home',
-            boardView: 'table',
-            calendarDate: new Date(),
-            activeBoardId: null,
-            darkMode: false,
-            searchQuery: '',
-            currentUser: null,
-            selectedUserId: null,
-            tempUser: null,
-            autoSaveEnabled: false,
-            autoSaveInterval: null,
-            currentFilePath: null,
-            collapsedGroups: {},
-            team: [],
-            boards: []
+            version: '1.0.0', lastModified: new Date().toISOString(), activeView: 'home', boardView: 'table', calendarDate: new Date(),
+            activeBoardId: null, darkMode: false, searchQuery: '', currentUser: null, selectedUserId: null, tempUser: null,
+            autoSaveEnabled: false, autoSaveInterval: null, currentFilePath: null, collapsedGroups: {},
+            team: [], boards: []
         };
 
-        const STATUS_TYPES = {
-            'Nao Iniciado': { label: 'A Fazer', color: '#c4c4c4' },
-            'Trabalhando': { label: 'Em Andamento', color: '#0073ea' },
-            'Travado': { label: 'Travado', color: '#fb275d' },
-            'Concluido': { label: 'Concluído', color: '#00ca72' }
-        };
-
-        const PRIORITY_TYPES = {
-            'Baixa': { label: 'Baixa', color: '#579bfc' },
-            'Media': { label: 'Média', color: '#a25ddc' },
-            'Alta': { label: 'Alta', color: '#ffad00' },
-            'Critica': { label: 'Crítica', color: '#fb275d' }
-        };
+        const STATUS_TYPES = { 'Nao Iniciado': { label: 'A Fazer', color: '#c4c4c4' }, 'Trabalhando': { label: 'Em Andamento', color: '#0073ea' }, 'Travado': { label: 'Travado', color: '#fb275d' }, 'Concluido': { label: 'Concluído', color: '#00ca72' } };
+        const PRIORITY_TYPES = { 'Baixa': { label: 'Baixa', color: '#579bfc' }, 'Media': { label: 'Média', color: '#a25ddc' }, 'Alta': { label: 'Alta', color: '#ffad00' }, 'Critica': { label: 'Crítica', color: '#fb275d' } };
 
         // ==================== FUNÇÕES UTILITÁRIAS ====================
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function showToast(msg, isErr) { const t = document.getElementById('toast'); t.textContent = msg; t.style.backgroundColor = isErr ? '#ef4444' : '#1e293b'; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 3000); }
         
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.backgroundColor = isError ? '#ef4444' : '#1e293b';
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-        }
-
         function calculateDueDateStatus(dueDate, taskStatus) {
             if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
             if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
             const today = new Date(); today.setHours(0,0,0,0);
             const due = new Date(dueDate); due.setHours(0,0,0,0);
-            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)} dia(s)` };
+            const diffDays = Math.ceil((due - today) / (1000*60*60*24));
+            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)}d` };
             if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
-            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays} dia(s)` };
+            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays}d` };
             return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
         }
-
+        
         function calculateProjectProgress(board) {
-            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (allTasks.length === 0) return 0;
-            const completedTasks = allTasks.filter(t => t.status === 'Concluido').length;
-            return Math.round((completedTasks / allTasks.length) * 100);
+            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            if (!tasks.length) return 0;
+            return Math.round((tasks.filter(t => t.status === 'Concluido').length / tasks.length) * 100);
         }
-
-        function isProjectCompleted(board) {
-            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (allTasks.length === 0) return false;
-            return allTasks.every(t => t.status === 'Concluido');
-        }
-
-        // ==================== FUNÇÕES DE API ====================
+        function isProjectCompleted(board) { const tasks = board.groups?.flatMap(g => g.tasks || []) || []; return tasks.length && tasks.every(t => t.status === 'Concluido'); }
+        
+        // ==================== API ====================
         async function carregarDadosMongo() {
             try {
-                const response = await fetch('/api/dados');
-                const data = await response.json();
-                if (data.team && data.team.length > 0) state.team = data.team;
-                if (data.boards && data.boards.length > 0) state.boards = data.boards;
+                const res = await fetch('/api/dados');
+                const data = await res.json();
+                if (data.team) state.team = data.team;
+                if (data.boards) state.boards = data.boards;
                 console.log(`✅ ${state.team.length} usuários, ${state.boards.length} projetos`);
-                if (state.currentUser) render();
-            } catch (error) { console.error('Erro ao carregar:', error); }
+            } catch(e) { console.error(e); }
         }
-
-        // Função para limpar grupos vazios
+        
         async function limparGruposVazios() {
             try {
-                console.log('🧹 Verificando grupos vazios...');
-                const response = await fetch('/api/limpar-grupos-vazios', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const result = await response.json();
-                if (result.modificados > 0) {
-                    console.log(`✅ ${result.modificados} projetos tiveram grupos vazios removidos`);
-                    // Recarregar dados após limpeza
-                    await carregarDadosMongo();
-                }
-            } catch (error) {
-                console.error('Erro ao limpar grupos vazios:', error);
-            }
-        }
-
-        async function salvarEquipeMongo() {
-            try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {}
+                const res = await fetch('/api/limpar-grupos-vazios', { method: 'POST' });
+                const result = await res.json();
+                if (result.modificados > 0) await carregarDadosMongo();
+            } catch(e) {}
         }
         
-        async function salvarBoardsMongo() {
-            try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {}
-        }
+        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {} }
+        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {} }
+        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) {} }
+        async function salvarUsuario(u) { try { await fetch('/api/usuario', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(u) }); } catch(e) {} }
+        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {} }
+        async function save() { await Promise.all([salvarEquipe(), salvarBoards()]); }
         
-        async function salvarBoardIndividual(board) {
-            try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board) }); } catch(e) {}
-        }
-        
-        async function salvarUsuarioIndividual(usuario) {
-            try {
-                await fetch('/api/usuario', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(usuario)
-                });
-                console.log(`✅ Usuário ${usuario.name} salvo individualmente`);
-            } catch(e) { console.error('Erro ao salvar usuário:', e); }
-        }
-        
-        async function deletarBoardMongo(id) {
-            try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {}
-        }
-        
-        async function save() { await Promise.all([salvarEquipeMongo(), salvarBoardsMongo()]); }
-
-        // ==================== BACKUP ====================
         function openDatabaseFile() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
+            const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
             input.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -644,33 +283,24 @@
                     const text = await file.text();
                     const imported = JSON.parse(text);
                     if (imported.team && imported.boards) {
-                        state.team = imported.team;
-                        state.boards = imported.boards;
-                        await save();
-                        renderUserList();
-                        render();
-                        renderSidebar();
-                        showToast('✅ Banco carregado: ' + file.name);
+                        state.team = imported.team; state.boards = imported.boards;
+                        await save(); renderUserList(); render(); renderSidebar();
+                        showToast('✅ Banco carregado');
                     }
-                } catch (error) { showToast('❌ Erro ao ler arquivo', true); }
+                } catch(e) { showToast('❌ Erro', true); }
             };
             input.click();
         }
-        
         function saveDatabaseFile() {
-            try {
-                const dataStr = JSON.stringify(state, null, 2);
-                const blob = new Blob([dataStr], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
-                a.href = url;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('✅ Dados exportados!');
-            } catch (error) { showToast('❌ Erro ao exportar', true); }
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = url; a.click(); URL.revokeObjectURL(url);
+            showToast('✅ Dados exportados');
         }
-
+        
         // ==================== LOGIN ====================
         function renderUserList() {
             const list = document.getElementById('userList');
@@ -679,494 +309,463 @@
                 <div class="user-item ${state.selectedUserId === u.id ? 'selected' : ''}" onclick="selectUser('${u.id}')">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${u.color}">${u.name.charAt(0)}</div>
                     <div><div class="font-bold">${escapeHtml(u.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(u.username)}</div></div>
-                    ${u.firstAccess ? '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕 Primeiro acesso</span>' : ''}
+                    ${u.firstAccess ? '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
                 </div>
             `).join('');
         }
-
-        function selectUser(id) {
-            state.selectedUserId = id;
-            document.getElementById('loginPassword').disabled = false;
-            document.getElementById('loginButton').disabled = false;
-            renderUserList();
-        }
-
+        function selectUser(id) { state.selectedUserId = id; document.getElementById('loginPassword').disabled = false; document.getElementById('loginButton').disabled = false; renderUserList(); }
         function handleLogin() {
-            const password = document.getElementById('loginPassword').value;
+            const pwd = document.getElementById('loginPassword').value;
             const user = state.team.find(u => u.id === state.selectedUserId);
             if (!user) { alert('Selecione um usuário'); return; }
-            if (btoa(password) === user.password) {
-                if (user.firstAccess) {
-                    state.tempUser = user;
-                    document.getElementById('passwordModal').classList.remove('hidden');
-                    document.getElementById('loginModal').style.display = 'none';
-                } else { completeLogin(user); }
-            } else { alert('Senha incorreta!'); }
+            if (btoa(pwd) === user.password) {
+                if (user.firstAccess) { state.tempUser = user; document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('loginModal').style.display = 'none'; }
+                else { completeLogin(user); }
+            } else { alert('Senha incorreta'); }
         }
-
         function completeLogin(user) {
             state.currentUser = user;
             document.getElementById('currentUserAvatar').style.background = user.color;
             document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
             document.getElementById('currentUserName').textContent = user.name;
+            document.getElementById('currentUserRole').textContent = user.type === 'manager' ? 'Gerente' : 'Executor';
             document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('loginPassword').value = '';
             updateUIBasedOnPermissions();
-            render();
-            renderSidebar();
+            render(); renderSidebar();
             showToast(`Bem-vindo, ${user.name}!`);
         }
-
-        function openPasswordModal() {
-            document.getElementById('userMenu').classList.add('hidden');
-            document.getElementById('passwordModal').classList.remove('hidden');
-        }
-        
-        function closePasswordModal() { 
-            document.getElementById('passwordModal').classList.add('hidden'); 
-            document.getElementById('senhaAtual').value = ''; 
-            document.getElementById('senhaNova').value = ''; 
-            document.getElementById('senhaConfirmar').value = ''; 
-        }
-        
+        function openPasswordModal() { document.getElementById('userMenu').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('hidden'); }
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
         async function alterarSenha() {
             const atual = document.getElementById('senhaAtual').value;
             const nova = document.getElementById('senhaNova').value;
-            const confirmar = document.getElementById('senhaConfirmar').value;
-            
-            if (!atual || !nova || !confirmar) {
-                alert('Preencha todos os campos');
-                return;
-            }
-            
-            if (btoa(atual) !== state.currentUser.senha) {
-                alert('Senha atual incorreta');
-                return;
-            }
-            
-            if (nova !== confirmar) {
-                alert('Nova senha não confere');
-                return;
-            }
-            
-            if (nova.length < 4) {
-                alert('A senha deve ter no mínimo 4 caracteres');
-                return;
-            }
-            
-            // Atualizar senha no state
+            const conf = document.getElementById('senhaConfirmar').value;
+            if (!atual || !nova || !conf) { alert('Preencha todos os campos'); return; }
+            if (btoa(atual) !== state.currentUser.senha) { alert('Senha atual incorreta'); return; }
+            if (nova !== conf) { alert('Senhas não conferem'); return; }
+            if (nova.length < 4) { alert('Mínimo 4 caracteres'); return; }
             state.currentUser.senha = btoa(nova);
             state.currentUser.firstAccess = false;
-            
-            // Atualizar na lista de usuários
             const usuario = state.team.find(u => u.id === state.currentUser.id);
-            if (usuario) {
-                usuario.senha = btoa(nova);
-                usuario.firstAccess = false;
-                
-                // Salvar no MongoDB individualmente
-                await salvarUsuarioIndividual(usuario);
-                
-                // Salvar também no backup completo
-                await salvarEquipeMongo();
-            }
-            
+            if (usuario) { usuario.senha = btoa(nova); usuario.firstAccess = false; await salvarUsuario(usuario); await salvarEquipe(); }
             closePasswordModal();
-            alert('Senha alterada com sucesso!');
+            alert('Senha alterada!');
             showToast('✅ Senha alterada!');
         }
-        
         function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('hidden'); }
+        function logout() { state.currentUser = null; document.getElementById('loginModal').style.display = 'flex'; renderUserList(); render(); }
+        document.addEventListener('click', (e) => { const menu = document.getElementById('userMenu'); const ind = document.getElementById('currentUserIndicator'); if (!ind?.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden'); });
         
-        function logout() {
-            state.currentUser = null;
-            document.getElementById('currentUserAvatar').style.background = '#94a3b8';
-            document.getElementById('currentUserAvatar').textContent = '?';
-            document.getElementById('currentUserName').textContent = 'Não logado';
-            document.getElementById('loginModal').style.display = 'flex';
-            renderUserList();
-            render();
-        }
-        
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('userMenu');
-            const indicator = document.getElementById('currentUserIndicator');
-            if (!indicator.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden');
-        });
-
         // ==================== PERMISSÕES ====================
-        function isCurrentUserManager() { return state.currentUser && state.currentUser.type === 'manager'; }
-        
+        function isCurrentUserManager() { return state.currentUser?.type === 'manager'; }
         function updateUIBasedOnPermissions() {
-            const isManager = isCurrentUserManager();
-            const newBoardBtn = document.getElementById('newBoardBtn');
-            if (newBoardBtn) newBoardBtn.style.display = isManager ? 'block' : 'none';
-            const addMemberBtn = document.getElementById('addMemberBtn');
-            if (addMemberBtn) addMemberBtn.style.display = isManager ? 'block' : 'none';
+            const isMgr = isCurrentUserManager();
+            document.getElementById('newBoardBtn') && (document.getElementById('newBoardBtn').style.display = isMgr ? 'block' : 'none');
+            document.getElementById('addMemberBtn') && (document.getElementById('addMemberBtn').style.display = isMgr ? 'block' : 'none');
         }
+        function canEditTask(t) { if (!state.currentUser) return false; if (state.currentUser.type === 'manager') return true; return state.currentUser.type === 'executor' && t.ownerId === state.currentUser.id; }
+        function filterTasksByUser(tasks) { if (!state.currentUser) return []; if (state.currentUser.type === 'manager') return tasks; return tasks.filter(t => t.ownerId === state.currentUser.id); }
         
-        function canEditTask(task) {
-            if (!state.currentUser) return false;
-            if (state.currentUser.type === 'manager') return true;
-            return state.currentUser.type === 'executor' && task.ownerId === state.currentUser.id;
-        }
-        
-        function filterTasksByUser(tasks) {
-            if (!state.currentUser) return [];
-            if (state.currentUser.type === 'manager') return tasks;
-            return tasks.filter(t => t.ownerId === state.currentUser.id);
-        }
-
-        // ==================== GERENCIAMENTO DE MEMBROS ====================
-        function openAddMemberModal() { 
-            document.getElementById('memberId').value = '';
-            document.getElementById('memberName').value = '';
-            document.getElementById('memberUsername').value = '';
-            document.getElementById('memberPassword').value = '';
-            document.getElementById('memberRole').value = '';
-            document.getElementById('memberType').value = 'executor';
-            document.getElementById('memberModal').classList.remove('hidden'); 
-        }
-        
-        function openEditMemberModal(memberId) {
-            const member = state.team.find(m => m.id === memberId);
-            if (!member) return;
-            document.getElementById('memberId').value = member.id;
-            document.getElementById('memberName').value = member.name;
-            document.getElementById('memberUsername').value = member.username;
-            document.getElementById('memberPassword').value = '';
-            document.getElementById('memberRole').value = member.role || '';
-            document.getElementById('memberType').value = member.type;
-            document.getElementById('memberModal').classList.remove('hidden');
-        }
-        
+        // ==================== MEMBROS ====================
+        function openAddMemberModal() { document.getElementById('memberId').value = ''; document.getElementById('memberName').value = ''; document.getElementById('memberUsername').value = ''; document.getElementById('memberPassword').value = ''; document.getElementById('memberRole').value = ''; document.getElementById('memberType').value = 'executor'; document.getElementById('memberModal').classList.remove('hidden'); }
+        function openEditMemberModal(id) { const m = state.team.find(u => u.id === id); if (!m) return; document.getElementById('memberId').value = m.id; document.getElementById('memberName').value = m.name; document.getElementById('memberUsername').value = m.username; document.getElementById('memberPassword').value = ''; document.getElementById('memberRole').value = m.role || ''; document.getElementById('memberType').value = m.type; document.getElementById('memberModal').classList.remove('hidden'); }
         function closeMemberModal() { document.getElementById('memberModal').classList.add('hidden'); }
-        
-        function openMemberSidebar(memberId) {
-            const member = state.team.find(m => m.id === memberId);
-            if (!member) return;
-            document.getElementById('sidebarMemberAvatar').style.background = member.color;
-            document.getElementById('sidebarMemberAvatar').innerHTML = member.name.charAt(0);
-            document.getElementById('sidebarMemberName').innerText = member.name;
-            document.getElementById('sidebarMemberRole').innerText = member.role || 'Membro';
-            document.getElementById('sidebarMemberInfo').innerHTML = `
-                <div class="info-item"><div class="info-label">Usuário</div><div class="info-value">@${escapeHtml(member.username)}</div></div>
-                <div class="info-item"><div class="info-label">Cargo</div><div class="info-value">${escapeHtml(member.cargo || 'Membro')}</div></div>
-                ${member.email ? `<div class="info-item"><div class="info-label">Email</div><div class="info-value">${escapeHtml(member.email)}</div></div>` : ''}
-                ${member.phone ? `<div class="info-item"><div class="info-label">Telefone</div><div class="info-value">${escapeHtml(member.phone)}</div></div>` : ''}
-            `;
-            document.getElementById('memberSidebar').classList.add('open');
-            document.getElementById('memberSidebarOverlay').classList.add('open');
-        }
-        
-        function closeMemberSidebar() {
-            document.getElementById('memberSidebar').classList.remove('open');
-            document.getElementById('memberSidebarOverlay').classList.remove('open');
-        }
-        
         async function saveMember() {
             const id = document.getElementById('memberId').value;
-            const name = document.getElementById('memberName').value;
-            const username = document.getElementById('memberUsername').value;
-            const password = document.getElementById('memberPassword').value;
+            const name = document.getElementById('memberName').value.trim();
+            const username = document.getElementById('memberUsername').value.trim();
+            const pwd = document.getElementById('memberPassword').value;
             const role = document.getElementById('memberRole').value;
             const type = document.getElementById('memberType').value;
-            if (!name || !username) { alert('Preencha os campos obrigatórios!'); return; }
-            
+            if (!name || !username) { alert('Preencha nome e usuário'); return; }
             if (id) {
-                const member = state.team.find(m => m.id === id);
-                if (member) {
-                    if (state.team.some(m => m.id !== id && m.username === username)) { alert('Nome de usuário já existe!'); return; }
-                    member.name = name;
-                    member.username = username;
-                    if (password) { member.password = btoa(password); member.firstAccess = true; }
-                    member.role = role;
-                    member.cargo = role;
-                    member.type = type;
-                    showToast(`✅ Membro ${name} atualizado!`);
+                const m = state.team.find(u => u.id === id);
+                if (m) {
+                    if (state.team.some(u => u.id !== id && u.username === username)) { alert('Usuário já existe'); return; }
+                    m.name = name; m.username = username; if (pwd) { m.password = btoa(pwd); m.firstAccess = true; } m.role = role; m.cargo = role; m.type = type;
+                    showToast(`✅ Membro ${name} atualizado`);
                 }
             } else {
-                if (state.team.some(u => u.username === username)) { alert('Nome de usuário já existe!'); return; }
-                const newMember = {
-                    id: 'm' + Date.now(),
-                    username: username,
-                    name: name,
-                    password: btoa(password || '123456'),
-                    color: '#' + Math.floor(Math.random()*16777215).toString(16),
-                    role: role,
-                    cargo: role,
-                    type: type,
-                    firstAccess: true
-                };
-                state.team.push(newMember);
-                showToast(`✅ Membro ${name} adicionado!`);
+                if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
+                state.team.push({ id: 'm' + Date.now(), username, name, password: btoa(pwd || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role, cargo: role, type, firstAccess: true });
+                showToast(`✅ Membro ${name} adicionado`);
             }
-            await salvarEquipeMongo();
-            closeMemberModal();
-            renderUserList();
-            renderSidebar();
-            render();
+            await salvarEquipe(); closeMemberModal(); renderUserList(); renderSidebar(); render();
         }
-        
         async function deleteMember(id) {
             if (!isCurrentUserManager()) return;
-            if (state.team.length <= 1) return alert("A equipe deve ter pelo menos um membro.");
-            const member = state.team.find(m => m.id === id);
-            if (member.type === 'manager' && state.team.filter(m => m.type === 'manager').length <= 1) {
-                return alert("Não é possível remover o único gerente.");
-            }
-            if (!confirm(`Remover ${member.name} da equipe?`)) return;
-            
-            const manager = state.team.find(m => m.type === 'manager');
-            if (manager) {
-                state.boards.forEach(b => {
-                    b.groups.forEach(g => {
-                        g.tasks.forEach(t => {
-                            if (t.ownerId === id) t.ownerId = manager.id;
-                        });
-                    });
-                });
-            }
-            state.team = state.team.filter(m => m.id !== id);
-            await salvarEquipeMongo();
-            renderUserList();
-            render();
-            renderSidebar();
-            showToast(`✅ Membro ${member.name} removido`);
-        }
-
-        // ==================== MOBILE SIDEBAR ====================
-        function toggleMobileSidebar() {
-            document.getElementById('mobileSidebar').classList.toggle('open');
-            document.getElementById('mobileOverlay').classList.toggle('open');
+            if (state.team.length <= 1) return alert("Mínimo um membro");
+            const m = state.team.find(u => u.id === id);
+            if (m.type === 'manager' && state.team.filter(u => u.type === 'manager').length <= 1) return alert("Não pode remover único gerente");
+            if (!confirm(`Remover ${m.name}?`)) return;
+            const manager = state.team.find(u => u.type === 'manager');
+            if (manager) { state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (t.ownerId === id) t.ownerId = manager.id; }); }); }); }
+            state.team = state.team.filter(u => u.id !== id);
+            await salvarEquipe(); renderUserList(); renderSidebar(); render();
+            showToast(`✅ Membro removido`);
         }
         
-        function closeMobileSidebar() {
-            document.getElementById('mobileSidebar').classList.remove('open');
-            document.getElementById('mobileOverlay').classList.remove('open');
-        }
-
-        // ==================== RENDER SIDEBAR ====================
+        // ==================== SIDEBAR ====================
+        function toggleMobileSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
+        function closeMobileSidebar() { document.getElementById('mobileSidebar').classList.remove('open'); document.getElementById('mobileOverlay').classList.remove('open'); }
+        
         function renderSidebar() {
-            const activeBoards = state.boards.filter(b => !isProjectCompleted(b));
-            const completedBoards = state.boards.filter(b => isProjectCompleted(b));
-            
-            const renderBoardList = (boards, showProgress = true) => boards.map(b => {
+            const ativos = state.boards.filter(b => !isProjectCompleted(b));
+            const concluidos = state.boards.filter(b => isProjectCompleted(b));
+            const renderList = (boards, showProgress) => boards.map(b => {
                 const progress = calculateProjectProgress(b);
-                // Contar tarefas totais (ignorando grupos vazios)
-                const gruposValidos = (b.groups || []).filter(g => g.tasks && g.tasks.length > 0);
+                const gruposValidos = (b.groups || []).filter(g => g.tasks?.length > 0);
                 const totalTasks = gruposValidos.reduce((acc, g) => acc + (g.tasks?.length || 0), 0);
-                
                 return `<div onclick="selectBoard(${b.id})" class="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 mb-1">
                     <span class="text-lg">📋</span>
-                    <div class="flex-1">
-                        <div class="text-sm font-medium">${escapeHtml(b.name)}</div>
-                        ${showProgress ? `<div class="progress-bar mt-1"><div class="progress-fill" style="width: ${progress}%"></div></div><span class="text-[8px] text-slate-400">${progress}%</span>` : ''}
-                        <span class="text-[10px] text-slate-400">${totalTasks} tarefas</span>
-                    </div>
+                    <div class="flex-1"><div class="text-sm font-medium">${escapeHtml(b.name)}</div>${showProgress ? `<div class="progress-bar mt-1"><div class="progress-fill" style="width: ${progress}%"></div></div><span class="text-[8px] text-slate-400">${progress}%</span>` : ''}<span class="text-[10px] text-slate-400">${totalTasks} tarefas</span></div>
                     ${isCurrentUserManager() ? `<button onclick="deleteBoard(event, ${b.id})" class="text-slate-400 hover:text-red-500 text-xs">✕</button>` : ''}
                 </div>`;
             }).join('');
-            
-            const boardsHtml = `<div class="mb-4"><p class="text-xs font-bold text-slate-400 uppercase mb-2">📊 Em Andamento (${activeBoards.length})</p>${renderBoardList(activeBoards)}</div>${completedBoards.length ? `<div><p class="text-xs font-bold text-slate-400 uppercase mb-2">✅ Concluídos (${completedBoards.length})</p>${renderBoardList(completedBoards, false)}</div>` : ''}`;
-            
-            document.getElementById('board-list').innerHTML = boardsHtml;
-            document.getElementById('mobile-board-list').innerHTML = boardsHtml;
-            
-            const membersHtml = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110 transition-transform" style="background: ${m.color}" title="${escapeHtml(m.name)}">${m.name.charAt(0)}</div>`).join('');
-            document.getElementById('sidebar-team').innerHTML = membersHtml;
-            document.getElementById('mobile-sidebar-team').innerHTML = membersHtml;
+            const html = `<div class="mb-4"><p class="text-xs font-bold text-slate-400 uppercase mb-2">📊 Em Andamento (${ativos.length})</p>${renderList(ativos, true)}</div>${concluidos.length ? `<div><p class="text-xs font-bold text-slate-400 uppercase mb-2">✅ Concluídos (${concluidos.length})</p>${renderList(concluidos, false)}</div>` : ''}`;
+            document.getElementById('board-list') && (document.getElementById('board-list').innerHTML = html);
+            document.getElementById('mobile-board-list') && (document.getElementById('mobile-board-list').innerHTML = html);
+            const membersHtml = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110" style="background: ${m.color}">${m.name.charAt(0)}</div>`).join('');
+            document.getElementById('sidebar-team') && (document.getElementById('sidebar-team').innerHTML = membersHtml);
+            document.getElementById('mobile-sidebar-team') && (document.getElementById('mobile-sidebar-team').innerHTML = membersHtml);
         }
-
+        
+        function openMemberSidebar(id) {
+            const m = state.team.find(u => u.id === id);
+            if (!m) return;
+            document.getElementById('sidebarMemberAvatar').style.background = m.color;
+            document.getElementById('sidebarMemberAvatar').innerHTML = m.name.charAt(0);
+            document.getElementById('sidebarMemberName').innerText = m.name;
+            document.getElementById('sidebarMemberRole').innerText = m.role || 'Membro';
+            document.getElementById('sidebarMemberInfo').innerHTML = `<div class="info-item"><div class="info-label">Usuário</div><div class="info-value">@${escapeHtml(m.username)}</div></div><div class="info-item"><div class="info-label">Cargo</div><div class="info-value">${escapeHtml(m.cargo || 'Membro')}</div></div>`;
+            document.getElementById('memberSidebar').classList.add('open');
+            document.getElementById('memberSidebarOverlay').classList.add('open');
+        }
+        function closeMemberSidebar() { document.getElementById('memberSidebar').classList.remove('open'); document.getElementById('memberSidebarOverlay').classList.remove('open'); }
+        
         // ==================== RENDER PRINCIPAL ====================
         function render() {
             if (!state.currentUser) return;
-            renderSidebar();
-            updateUIBasedOnPermissions();
-            
+            renderSidebar(); updateUIBasedOnPermissions();
             const container = document.getElementById('view-container');
             if (!container) return;
-            
-            if (state.activeView === 'home') {
-                renderHome();
-                document.getElementById('bottom-home')?.classList.add('active');
-                document.getElementById('bottom-dash')?.classList.remove('active');
-                document.getElementById('bottom-team')?.classList.remove('active');
-                document.getElementById('bottom-reports')?.classList.remove('active');
-            } else if (state.activeView === 'dashboard') {
-                renderDashboard();
-                document.getElementById('bottom-dash')?.classList.add('active');
-                document.getElementById('bottom-home')?.classList.remove('active');
-                document.getElementById('bottom-team')?.classList.remove('active');
-                document.getElementById('bottom-reports')?.classList.remove('active');
-            } else if (state.activeView === 'team') {
-                renderTeamView();
-                document.getElementById('bottom-team')?.classList.add('active');
-                document.getElementById('bottom-home')?.classList.remove('active');
-                document.getElementById('bottom-dash')?.classList.remove('active');
-                document.getElementById('bottom-reports')?.classList.remove('active');
-            } else if (state.activeView === 'reports') {
-                renderReports();
-                document.getElementById('bottom-reports')?.classList.add('active');
-                document.getElementById('bottom-home')?.classList.remove('active');
-                document.getElementById('bottom-dash')?.classList.remove('active');
-                document.getElementById('bottom-team')?.classList.remove('active');
-            }
+            if (state.activeView === 'home') { renderHome(); document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active')); document.getElementById('bottom-home')?.classList.add('active'); }
+            else if (state.activeView === 'dashboard') { renderDashboard(); document.getElementById('bottom-dash')?.classList.add('active'); }
+            else if (state.activeView === 'team') { renderTeamView(); document.getElementById('bottom-team')?.classList.add('active'); }
+            else if (state.activeView === 'reports') { renderReports(); document.getElementById('bottom-reports')?.classList.add('active'); }
+            else if (state.activeView === 'board') { renderBoardView(); }
         }
         
         function renderHome() {
-            const activeBoards = state.boards.filter(b => !isProjectCompleted(b));
-            const container = document.getElementById('view-container');
-            
-            container.innerHTML = `
+            const ativos = state.boards.filter(b => !isProjectCompleted(b));
+            document.getElementById('view-container').innerHTML = `
                 <div class="max-w-6xl mx-auto p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h1 class="text-2xl md:text-3xl font-black">Olá, ${escapeHtml(state.currentUser.name)}!</h1>
-                            <p class="text-sm text-slate-500">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p>
-                        </div>
-                        ${isCurrentUserManager() ? '<button onclick="openNewProcessModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Novo Projeto</button>' : ''}
-                    </div>
-                    <div class="processos-grid">
-                        ${activeBoards.map(b => {
-                            // FILTRAR GRUPOS VAZIOS - CORREÇÃO PRINCIPAL
-                            const gruposValidos = (b.groups || []).filter(g => g.tasks && g.tasks.length > 0);
-                            const tasks = gruposValidos.flatMap(g => g.tasks || []);
-                            const userTasks = filterTasksByUser(tasks);
-                            const dueStatus = userTasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
-                            const progress = calculateProjectProgress(b);
-                            
-                            return `<div onclick="selectBoard(${b.id})" class="process-card">
-                                <div class="text-3xl mb-2">📋</div>
-                                <h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3>
-                                <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div>
-                                <div class="text-xs text-slate-400 mb-3">${progress}% concluído</div>
-                                <div class="space-y-1 text-xs">
-                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Atrasados: ${dueStatus.filter(s => s.status === 'overdue').length}</span></div>
-                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span>Vencem hoje: ${dueStatus.filter(s => s.status === 'today').length}</span></div>
-                                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Vencem em 7 dias: ${dueStatus.filter(s => s.status === 'week').length}</span></div>
-                                </div>
-                                <div class="mt-3 pt-2 flex justify-between items-center text-xs border-t border-slate-100 dark:border-slate-800">
-                                    <span>${tasks.length} tarefas</span>
-                                    <div class="flex -space-x-2">${state.team.slice(0,3).map(m => `<div class="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900" style="background: ${m.color}" title="${escapeHtml(m.name)}"></div>`).join('')}</div>
-                                </div>
-                            </div>`;
-                        }).join('')}
-                        ${activeBoards.length === 0 ? '<div class="col-span-full text-center py-12 text-slate-400">Nenhum projeto em andamento</div>' : ''}
-                    </div>
+                    <div class="flex justify-between items-center mb-6"><div><h1 class="text-2xl md:text-3xl font-black">Olá, ${escapeHtml(state.currentUser.name)}!</h1><p class="text-sm text-slate-500">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p></div>${isCurrentUserManager() ? '<button onclick="openNewProcessModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Novo</button>' : ''}</div>
+                    <div class="processos-grid">${ativos.map(b => {
+                        const gruposValidos = (b.groups || []).filter(g => g.tasks?.length > 0);
+                        const tasks = gruposValidos.flatMap(g => g.tasks || []);
+                        const userTasks = filterTasksByUser(tasks);
+                        const dueStatus = userTasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
+                        const progress = calculateProjectProgress(b);
+                        return `<div onclick="selectBoard(${b.id})" class="process-card"><div class="text-3xl mb-2">📋</div><h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3><div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div><div class="text-xs text-slate-400 mb-3">${progress}% concluído</div><div class="space-y-1 text-xs"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Atrasados: ${dueStatus.filter(s => s.status === 'overdue').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span>Vencem hoje: ${dueStatus.filter(s => s.status === 'today').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Vencem em 7 dias: ${dueStatus.filter(s => s.status === 'week').length}</span></div></div><div class="mt-3 pt-2 flex justify-between items-center text-xs border-t"><span>${tasks.length} tarefas</span><div class="flex -space-x-2">${state.team.slice(0,3).map(m => `<div class="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900" style="background: ${m.color}"></div>`).join('')}</div></div></div>`;
+                    }).join('')}${ativos.length === 0 ? '<div class="col-span-full text-center py-12 text-slate-400">Nenhum projeto em andamento</div>' : ''}</div>
                 </div>`;
         }
         
         function renderDashboard() {
-            document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📊 Dashboard em desenvolvimento</div>';
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            let statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
+            let teamTask = {};
+            state.team.forEach(m => teamTask[m.id] = { name: m.name, count: 0, overdue: 0 });
+            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; if (teamTask[t.ownerId]) { teamTask[t.ownerId].count++; const ds = calculateDueDateStatus(t.timeline?.[1], t.status); if (ds.status === 'overdue' && t.status !== 'Concluido') teamTask[t.ownerId].overdue++; } }); }); });
+            const total = Object.values(statusCounts).reduce((a,b)=>a+b,0);
+            const perc = total ? Math.round((statusCounts['Concluido']/total)*100) : 0;
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-6xl mx-auto p-6"><h2 class="text-3xl font-black mb-8">📊 Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Status Global</h3><canvas id="statusChart" height="200"></canvas></div>
+                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border flex flex-col items-center"><h3 class="font-bold mb-4">Eficiência Geral</h3><div class="relative w-40 h-40"><svg class="w-full h-full -rotate-90"><circle cx="80" cy="80" r="70" stroke="#e2e8f0" stroke-width="12" fill="none"/><circle id="progress-circle" cx="80" cy="80" r="70" stroke="#0073ea" stroke-width="12" fill="none" stroke-dasharray="439.8" stroke-dashoffset="${439.8 - (perc/100)*439.8}" style="transition: stroke-dashoffset 1s"/></svg><div class="absolute inset-0 flex items-center justify-center text-2xl font-black">${perc}%</div></div></div></div>
+                <div class="mt-6 bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Carga por Membro</h3><canvas id="teamChart" height="200"></canvas></div></div>`;
+            setTimeout(() => {
+                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
+                if(ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: Object.keys(STATUS_TYPES).map(k=>statusCounts[k]||0), backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
+                const ctx2 = document.getElementById('teamChart')?.getContext('2d');
+                if(ctx2) new Chart(ctx2, { type: 'bar', data: { labels: Object.values(teamTask).map(t=>t.name), datasets: [{ label: 'Tarefas', data: Object.values(teamTask).map(t=>t.count), backgroundColor: '#0073ea' }, { label: 'Atrasadas', data: Object.values(teamTask).map(t=>t.overdue), backgroundColor: '#fb275d' }] } });
+            }, 100);
         }
         
         function renderTeamView() {
-            if (!isCurrentUserManager()) {
-                document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Você não tem permissão</div>';
-                return;
-            }
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-4xl mx-auto p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-black">👥 Gerenciar Equipe</h2>
-                        <button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold">+ Adicionar</button>
-                    </div>
-                    <div class="space-y-3">
-                        ${state.team.map(m => `
-                            <div class="bg-white dark:bg-[#181829] p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div>
-                                    <div><div class="font-bold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div></div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="openEditMemberModal('${m.id}')" class="text-blue-500 text-xl">✏️</button>
-                                    ${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-red-500 text-xl">🗑️</button>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            document.getElementById('view-container').innerHTML = `<div class="max-w-4xl mx-auto p-4 md:p-6"><div class="flex justify-between mb-6"><h2 class="text-2xl font-black">👥 Equipe</h2><button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm">+ Adicionar</button></div><div class="space-y-3">${state.team.map(m => `<div class="bg-white dark:bg-[#181829] p-4 rounded-xl border flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div><div><div class="font-bold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div></div></div><div class="flex gap-2"><button onclick="openEditMemberModal('${m.id}')" class="text-blue-500 text-xl">✏️</button>${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-red-500 text-xl">🗑️</button>` : ''}</div></div>`).join('')}</div></div>`;
         }
         
         function renderReports() {
             document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📈 Relatórios em desenvolvimento</div>';
         }
-
-        // ==================== AÇÕES DE PROJETOS ====================
-        function selectBoard(id) { 
-            state.activeBoardId = id; 
-            state.activeView = 'board'; 
-            renderTable(); 
+        
+        // ==================== FUNÇÕES DO BOARD (TABELA, KANBAN, GANTT, CALENDÁRIO) ====================
+        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; renderBoardView(); }
+        
+        function renderBoardView() {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) { renderHome(); return; }
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black">${escapeHtml(board.name)}</h2></div>
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
+                <div id="board-content"></div></div>`;
+            setBoardView(state.boardView);
         }
         
-        function renderTable() {
-            document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📋 Visualização Tabela (em desenvolvimento)</div>';
+        function setBoardView(view) { state.boardView = view; renderBoardContent(); }
+        
+        function renderBoardContent() {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const container = document.getElementById('board-content');
+            if (!container) return;
+            if (state.boardView === 'table') container.innerHTML = renderTable(board);
+            else if (state.boardView === 'kanban') container.innerHTML = renderKanban(board);
+            else if (state.boardView === 'gantt') container.innerHTML = renderGantt(board);
+            else if (state.boardView === 'calendar') container.innerHTML = renderCalendar(board);
         }
         
-        function createNewBoard() {
+        function renderTable(board) {
+            const isManager = isCurrentUserManager();
+            const statusOptions = Object.entries(STATUS_TYPES).map(([k,v]) => ({value:k, label:v.label, color:v.color}));
+            const priorityOptions = Object.entries(PRIORITY_TYPES).map(([k,v]) => ({value:k, label:v.label, color:v.color}));
+            return `<div class="space-y-6">${board.groups?.map(g => {
+                const tasks = g.tasks || [];
+                const filtered = filterTasksByUser(tasks);
+                return `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="p-3 border-b flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${g.color}"></span><h3 class="font-bold">${escapeHtml(g.name)}</h3><span class="text-xs text-slate-400">${tasks.length} tarefas</span></div><div class="overflow-x-auto"><table class="w-full"><thead><tr class="text-xs text-slate-400 border-b"><th class="p-2 text-left">Tarefa</th><th class="p-2">Responsável</th><th class="p-2">Status</th><th class="p-2">Prioridade</th><th class="p-2">Prazo</th>${isManager ? '<th class="p-2"></th>' : ''}</tr></thead><tbody>${filtered.map(t => {
+                    const dueStatus = calculateDueDateStatus(t.timeline?.[1], t.status);
+                    const canEdit = canEditTask(t);
+                    const owner = state.team.find(m => m.id === t.ownerId);
+                    return `<tr class="border-t"><td class="p-2"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTaskField('${g.id}','${t.id}','title',this.value)"` : 'disabled'} class="bg-transparent w-full outline-none ${!canEdit ? 'opacity-50' : ''}"></td>
+                    <td class="p-2"><select ${isManager ? `onchange="updateTaskField('${g.id}','${t.id}','ownerId',this.value)"` : 'disabled'} class="bg-transparent text-xs">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${m.name}</option>`).join('')}</select></td>
+                    <td class="p-2"><div class="status-trigger" style="background:${STATUS_TYPES[t.status]?.color}" ${canEdit ? `onclick='showStatusDropdown(this, "${g.id}", "${t.id}")'` : ''}>${STATUS_TYPES[t.status]?.label}</div></td>
+                    <td class="p-2"><div class="status-trigger" style="background:${PRIORITY_TYPES[t.priority]?.color}" ${isManager ? `onclick='showPriorityDropdown(this, "${g.id}", "${t.id}")'` : ''}>${PRIORITY_TYPES[t.priority]?.label}</div></td>
+                    <td class="p-2"><div class="flex items-center gap-1 text-xs"><input type="date" value="${t.timeline?.[1] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}','${t.id}',1,this.value)"` : 'disabled'} class="bg-transparent w-24"></div><div class="text-[10px] ${dueStatus.class} px-1 rounded">${dueStatus.label}</div></td>
+                    ${isManager ? `<td class="p-2"><button onclick="deleteTask('${g.id}','${t.id}')" class="text-red-400">🗑️</button></td>` : ''}</tr>`;
+                }).join('')}</tbody></table></div>${isManager ? `<div class="p-3 border-t"><button onclick="addNewTask('${g.id}')" class="text-monday-blue text-sm">+ Adicionar tarefa</button></div>` : ''}</div>`;
+            }).join('')}</div>`;
+        }
+        
+        function renderKanban(board) {
+            const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color}))) || [];
+            const filtered = filterTasksByUser(tasks);
+            return `<div class="flex gap-4 overflow-x-auto pb-4">${Object.entries(STATUS_TYPES).map(([key,info]) => `<div class="min-w-[280px] bg-slate-50 dark:bg-slate-800/30 rounded-xl p-3"><div class="flex justify-between mb-3"><h3 class="font-bold">${info.label}</h3><span class="text-xs text-slate-400">${filtered.filter(t=>t.status===key).length}</span></div><div class="space-y-2">${filtered.filter(t=>t.status===key).map(t => `<div class="bg-white dark:bg-[#181829] p-3 rounded-lg shadow-sm"><div class="font-bold text-sm">${escapeHtml(t.title)}</div><div class="flex justify-between mt-2 text-xs"><span class="priority-badge" style="background:${PRIORITY_TYPES[t.priority]?.color}20; color:${PRIORITY_TYPES[t.priority]?.color}">${t.priority}</span><div class="w-6 h-6 rounded-full bg-${state.team.find(m=>m.id===t.ownerId)?.color} text-white text-center text-xs leading-6">${state.team.find(m=>m.id===t.ownerId)?.name?.charAt(0)}</div></div>${canEditTask(t) ? `<div class="mt-2"><div class="status-trigger text-xs py-1 px-2" style="background:${info.color}" onclick='showStatusDropdown(this, "${t.groupId || t.groupName}", "${t.id}")'>${info.label} ▼</div></div>` : ''}</div>`).join('')}</div></div>`).join('')}</div>`;
+        }
+        
+        function renderGantt(board) {
+            const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name}))) || [];
+            if (!tasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa</div>';
+            const today = new Date(); today.setHours(0,0,0,0);
+            const dates = tasks.flatMap(t => t.timeline || []).filter(d=>d).map(d=>new Date(d));
+            const start = new Date(Math.min(...dates.map(d=>d.getTime()), today.getTime()));
+            start.setDate(start.getDate() - 5);
+            const end = new Date(Math.max(...dates.map(d=>d.getTime()), today.getTime()));
+            end.setDate(end.getDate() + 30);
+            const days = []; let cur = new Date(start);
+            while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
+            return `<div class="gantt-container"><div class="flex border-b sticky top-0 bg-white dark:bg-[#181829]"><div class="w-64 p-2 font-bold">Tarefa</div><div class="flex overflow-x-auto">${days.map(d => `<div class="w-12 text-center text-[10px] p-1 border-r ${d.getDay()===0||d.getDay()===6 ? 'bg-slate-100 dark:bg-slate-800' : ''} ${d.toDateString()===today.toDateString() ? 'bg-blue-100 dark:bg-blue-900/30 font-bold text-monday-blue' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>${tasks.map(t => {
+                if (!t.timeline?.[0] || !t.timeline?.[1]) return '';
+                const startOff = Math.max(0, Math.floor((new Date(t.timeline[0]) - start) / (1000*60*60*24)));
+                const dur = Math.max(1, Math.ceil((new Date(t.timeline[1]) - new Date(t.timeline[0])) / (1000*60*60*24)) + 1);
+                return `<div class="flex border-b"><div class="w-64 p-2 text-sm truncate">${escapeHtml(t.title)}</div><div class="relative" style="width:${days.length*48}px; height:40px"><div class="absolute rounded-full h-6 top-1 bg-${STATUS_TYPES[t.status]?.color || '#c4c4c4'} text-white text-[10px] flex items-center px-2" style="left:${startOff*48}px; width:${dur*48}px; background:${STATUS_TYPES[t.status]?.color || '#c4c4c4'}">${t.status}</div></div></div>`;
+            }).join('')}</div>`;
+        }
+        
+        function renderCalendar(board) {
+            const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color}))) || [];
+            const today = new Date();
+            const month = state.calendarDate?.getMonth() || today.getMonth();
+            const year = state.calendarDate?.getFullYear() || today.getFullYear();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month+1, 0).getDate();
+            const tasksByDate = {};
+            tasks.forEach(t => {
+                if (t.timeline?.[1]) {
+                    const d = new Date(t.timeline[1]);
+                    if (d.getMonth() === month && d.getFullYear() === year) {
+                        const key = d.getDate();
+                        if (!tasksByDate[key]) tasksByDate[key] = [];
+                        tasksByDate[key].push(t);
+                    }
+                }
+            });
+            let html = `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="flex justify-between p-4 border-b"><button onclick="changeMonth(-1)" class="p-2">◀</button><h3 class="font-bold">${new Date(year, month).toLocaleDateString('pt', {month:'long', year:'numeric'})}</h3><button onclick="changeMonth(1)" class="p-2">▶</button></div><div class="grid grid-cols-7 text-center py-2 text-xs font-bold text-slate-400"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="grid grid-cols-7">`;
+            for (let i=0; i<firstDay; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
+            for (let d=1; d<=daysInMonth; d++) {
+                const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}"><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`;
+            }
+            const remaining = 42 - (firstDay + daysInMonth);
+            for (let i=0; i<remaining; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
+            html += `</div></div>`;
+            return html;
+        }
+        
+        function changeMonth(delta) { state.calendarDate = new Date(state.calendarDate || new Date()); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); renderBoardContent(); }
+        
+        // ==================== AÇÕES DE TAREFAS ====================
+        async function updateTaskField(gId, tId, field, val) {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            const task = group.tasks.find(t => t.id == tId);
+            if (!task) return;
+            if (!canEditTask(task) && field !== 'status') return;
+            if (field === 'status' && !canEditTask(task) && task.ownerId !== state.currentUser?.id) return;
+            task[field] = val;
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function updateTaskDate(gId, tId, idx, val) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            const task = group.tasks.find(t => t.id == tId);
+            if (!task) return;
+            if (!task.timeline) task.timeline = ['', ''];
+            task.timeline[idx] = val;
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function addNewTask(gId) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            const today = new Date();
+            const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
+            group.tasks = group.tasks || [];
+            group.tasks.push({ id: 't' + Date.now() + Math.random(), title: 'Nova Tarefa', ownerId: state.team.find(m => m.type === 'executor')?.id || state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] });
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function deleteTask(gId, tId) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            group.tasks = group.tasks.filter(t => t.id != tId);
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function addNewGroup() {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            board.groups = board.groups || [];
+            board.groups.push({ id: Date.now() + Math.random(), name: 'Novo Grupo', color: '#' + Math.floor(Math.random()*16777215).toString(16), tasks: [] });
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function deleteGroup(gId) {
+            if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (!group) return;
+            if (!confirm(`Excluir grupo "${group.name}"?`)) return;
+            board.groups = board.groups.filter(g => g.id != gId);
+            await salvarBoard(board);
+            renderBoardContent();
+        }
+        async function renameGroup(gId, newName) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const group = board.groups.find(g => g.id == gId);
+            if (group) { group.name = newName; await salvarBoard(board); renderBoardContent(); }
+        }
+        async function salvarBoard(board) { await salvarBoardIndividual(board); }
+        
+        // ==================== CRIAÇÃO DE PROJETOS ====================
+        function openNewProcessModal() { document.getElementById('newProcessModal').classList.remove('hidden'); }
+        function closeNewProcessModal() { document.getElementById('newProcessModal').classList.add('hidden'); document.getElementById('newBoardName').value = ''; }
+        async function createNewBoard() {
             if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
             const name = prompt('Nome do projeto:');
             if (!name) return;
             const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
             state.boards.push(newBoard);
-            salvarBoardIndividual(newBoard);
-            render();
-            renderSidebar();
-            showToast(`Projeto "${name}" criado!`);
+            await salvarBoard(newBoard);
+            render(); renderSidebar();
+            showToast(`✅ Projeto "${name}" criado`);
         }
-        
-        function createNewBoardFromModal() {
+        async function createNewBoardFromModal() {
             const name = document.getElementById('newBoardName').value.trim();
-            if (!name) { alert('Digite o nome do projeto'); return; }
+            if (!name) { alert('Digite o nome'); return; }
             const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
             state.boards.push(newBoard);
-            salvarBoardIndividual(newBoard);
+            await salvarBoard(newBoard);
             closeNewProcessModal();
-            render();
-            renderSidebar();
-            showToast(`Projeto "${name}" criado!`);
+            render(); renderSidebar();
+            showToast(`✅ Projeto "${name}" criado`);
         }
-        
-        function openNewProcessModal() { document.getElementById('newProcessModal').classList.remove('hidden'); }
-        function closeNewProcessModal() { document.getElementById('newProcessModal').classList.add('hidden'); document.getElementById('newBoardName').value = ''; }
-        
-        function deleteBoard(e, id) {
+        async function deleteBoard(e, id) {
             e.stopPropagation();
             if (!confirm('Excluir projeto?')) return;
             state.boards = state.boards.filter(b => b.id !== id);
-            deletarBoardMongo(id);
-            render();
-            renderSidebar();
+            await deletarBoard(id);
+            if (state.activeBoardId === id) state.activeView = 'home';
+            render(); renderSidebar();
             showToast('✅ Projeto excluído');
         }
         
+        // ==================== DROPDOWNS ====================
+        function showStatusDropdown(trigger, groupId, taskId) {
+            const options = Object.entries(STATUS_TYPES).map(([key,info]) => ({value:key, label:info.label, color:info.color}));
+            showDropdown(trigger, options, (val) => updateTaskField(groupId, taskId, 'status', val));
+        }
+        function showPriorityDropdown(trigger, groupId, taskId) {
+            const options = Object.entries(PRIORITY_TYPES).map(([key,info]) => ({value:key, label:info.label, color:info.color}));
+            showDropdown(trigger, options, (val) => updateTaskField(groupId, taskId, 'priority', val));
+        }
+        let activeDropdown = null;
+        function showDropdown(trigger, options, onSelect) {
+            if (activeDropdown) activeDropdown.remove();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown-portal';
+            const rect = trigger.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            dropdown.style.left = (rect.left + window.scrollX) + 'px';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.style.borderLeft = `4px solid ${opt.color}`;
+                btn.textContent = opt.label;
+                btn.onclick = (e) => { e.stopPropagation(); onSelect(opt.value); closeActiveDropdown(); };
+                dropdown.appendChild(btn);
+            });
+            document.getElementById('dropdownPortal').appendChild(dropdown);
+            activeDropdown = dropdown;
+            setTimeout(() => {
+                document.addEventListener('click', function close(e) { if (!dropdown.contains(e.target) && e.target !== trigger) { dropdown.remove(); document.removeEventListener('click', close); activeDropdown = null; } });
+            }, 100);
+        }
+        function closeActiveDropdown() { if (activeDropdown) { activeDropdown.remove(); activeDropdown = null; } }
+        
+        function changeMainView(view) { state.activeView = view; render(); }
         function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); }
         
         // ==================== INICIALIZAÇÃO ====================
         window.onload = async () => {
             await carregarDadosMongo();
-            
-            // Limpar grupos vazios
             await limparGruposVazios();
-            
-            // Se não houver projetos, criar um de exemplo
             if (state.boards.length === 0 && state.team.length > 0) {
                 const today = new Date();
                 const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
-                state.boards = [{ id: Date.now(), name: 'Projeto de Exemplo', managerId: state.team[0]?.id, groups: [{ id: 'g1', name: 'Fase 1', color: '#0073ea', tasks: [{ id: 't1', title: 'Tarefa exemplo', ownerId: state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }] }] }];
+                state.boards = [{ id: Date.now(), name: 'Projeto de Exemplo', managerId: state.team[0].id, groups: [{ id: 'g1', name: 'Fase 1', color: '#0073ea', tasks: [{ id: 't1', title: 'Tarefa exemplo', ownerId: state.team[0].id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }] }] }];
             }
-            
             if (state.darkMode) document.documentElement.classList.add('dark');
             renderUserList();
             document.getElementById('loginModal').style.display = 'flex';
-            
-            if (state.currentUser) {
-                document.getElementById('loginModal').style.display = 'none';
-                updateUIBasedOnPermissions();
-                render();
-                renderSidebar();
-            }
+            if (state.currentUser) { document.getElementById('loginModal').style.display = 'none'; updateUIBasedOnPermissions(); render(); renderSidebar(); }
         };
     </script>
 </body>
