@@ -389,7 +389,7 @@
         
         @media print { body * { visibility: hidden; } .report-section, .report-section * { visibility: visible; } .report-section { position: absolute; left: 0; top: 0; width: 100%; page-break-after: always; } .no-print { display: none !important; } }
         
-        /* Mobile Responsive - mantendo layout web original */
+        /* ========== MOBILE RESPONSIVE ========== */
         @media (max-width: 768px) {
             .sidebar-resizable {
                 position: fixed;
@@ -414,13 +414,46 @@
                 display: block;
                 cursor: pointer;
             }
-            .desktop-only { display: none; }
+            .desktop-nav { display: none; }
+            .bottom-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                border-top: 1px solid #e2e8f0;
+                z-index: 100;
+                padding: 8px 16px;
+                padding-bottom: env(safe-area-inset-bottom);
+                justify-content: space-around;
+                align-items: center;
+            }
+            .dark .bottom-nav { background: #181829; border-color: #2d2d3f; }
+            .bottom-nav-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 6px 12px;
+                border-radius: 30px;
+                min-width: 60px;
+                color: #64748b;
+                background: transparent;
+            }
+            .dark .bottom-nav-item { color: #94a3b8; }
+            .bottom-nav-item.active { background: #e6f0ff; color: #0073ea; }
+            .dark .bottom-nav-item.active { background: #1e293b; color: #60a5fa; }
+            .bottom-nav-item span:first-child { font-size: 22px; }
+            .bottom-nav-item span:last-child { font-size: 10px; font-weight: 600; }
             .process-card { padding: 16px; }
+            .resize-handle { display: none; }
             .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+            .gantt-container { font-size: 10px; }
+            .gantt-task-col { width: 180px; }
+            .gantt-day { width: 32px; font-size: 8px; }
         }
-        
         @media (min-width: 769px) {
-            .menu-toggle, .mobile-overlay { display: none; }
+            .menu-toggle, .mobile-overlay, .bottom-nav { display: none; }
         }
     </style>
 </head>
@@ -507,6 +540,9 @@
     <!-- TOP NAVIGATION -->
     <header class="h-14 bg-white dark:bg-[#181829] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-50">
         <div class="flex items-center gap-8">
+            <!-- Botão menu mobile -->
+            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full" onclick="toggleMobileSidebar()">☰</button>
+            
             <div class="flex items-center gap-2 cursor-pointer" onclick="changeMainView('home')">
                 <div class="w-8 h-8 bg-gradient-to-br from-monday-blue to-monday-purple rounded-lg flex items-center justify-center text-white font-bold shadow-lg">W</div>
                 <span class="font-black text-lg tracking-tight">Workspace<span class="text-monday-blue">Pro</span></span>
@@ -518,9 +554,6 @@
                 <button onclick="changeMainView('team')" id="btn-team" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">👥 Equipe</button>
                 <button onclick="changeMainView('reports')" id="btn-reports" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">📈 Relatórios</button>
             </nav>
-            
-            <!-- Menu Toggle para Mobile -->
-            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full" onclick="toggleMobileSidebar()">☰</button>
         </div>
 
         <div class="flex items-center gap-4">
@@ -544,6 +577,15 @@
             </div>
         </div>
     </header>
+
+    <!-- BOTTOM NAVIGATION (mobile) -->
+    <div class="bottom-nav">
+        <button onclick="changeMainView('home')" class="bottom-nav-item" id="bottom-home"><span>🏠</span><span>Início</span></button>
+        <button onclick="changeMainView('dashboard')" class="bottom-nav-item" id="bottom-dash"><span>📊</span><span>Dashboard</span></button>
+        <button onclick="changeMainView('team')" class="bottom-nav-item" id="bottom-team"><span>👥</span><span>Equipe</span></button>
+        <button onclick="changeMainView('reports')" class="bottom-nav-item" id="bottom-reports"><span>📈</span><span>Relatórios</span></button>
+        <button onclick="createNewBoard()" class="bottom-nav-item bg-monday-blue text-white rounded-full w-12 h-12 flex items-center justify-center -mt-6 shadow-lg"><span class="text-2xl">+</span></button>
+    </div>
 
     <!-- USER MENU DROPDOWN -->
     <div id="userMenu" class="hidden absolute right-24 top-14 bg-white dark:bg-[#181829] border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-50 w-48">
@@ -637,7 +679,7 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-[9999]">Alterações salvas!</div>
 
     <script>
-        // --- DATA STRUCTURE ---
+        // ==================== DATA STRUCTURE (COMPLETA) ====================
         let state = {
             version: '1.0.0',
             lastModified: new Date().toISOString(),
@@ -1232,7 +1274,7 @@
             };
         }
 
-        // --- CORE FUNCTIONS ---
+        // ==================== CORE RENDER FUNCTIONS ====================
         window.onload = async () => {
             try {
                 await carregarDadosMongo();
@@ -1374,22 +1416,22 @@
                     </div>
                     <div class="group-content ${isCollapsed ? 'collapsed' : ''}">
                         <div class="table-container rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181829] shadow-sm">
-                            <table><thead class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-black text-slate-400"><tr><th class="px-2 py-3 w-16"></th><th class="px-2 py-3 w-10"></th><th class="px-2 py-3 min-w-[300px]">Tarefa</th><th class="px-2 py-3 w-40 text-center">Responsável</th><th class="px-2 py-3 w-40 text-center">Status</th><th class="px-2 py-3 w-40 text-center">Prioridade</th><th class="px-2 py-3 w-48 text-center">Cronograma</th><th class="px-2 py-3 w-40 text-center">Prazo</th>${isManager ? '<th class="px-4 py-3 w-10"></th>' : ''}</tr></thead>
+                            <table><thead class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-black text-slate-400"><tr><th class="px-2 py-3 w-16"></th><th class="px-2 py-3 w-10"></th><th class="px-2 py-3 min-w-[300px]">Tarefa</th><th class="px-2 py-3 w-40 text-center">Responsável</th><th class="px-2 py-3 w-40 text-center">Status</th><th class="px-2 py-3 w-40 text-center">Prioridade</th><th class="px-2 py-3 w-48 text-center">Cronograma</th><th class="px-2 py-3 w-40 text-center">Prazo</th>${isManager ? '<th class="px-4 py-3 w-10"></th>' : ''} </thead>
                             <tbody>
                                 ${filteredTasks.filter(t => t.title?.toLowerCase().includes(state.searchQuery.toLowerCase())).map((t, index, array) => {
                                     const dueStatus = calculateDueDateStatus(t.timeline?.[1], t.status);
                                     const canEdit = canEditTask(t);
                                     return `<tr class="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                                        <td class="px-2 py-4"><div class="flex gap-1">${isManager && index > 0 ? `<button onclick="moveTaskUp('${g.id}', '${t.id}')" class="move-task-btn">⬆️</button>` : ''}${isManager && index < array.length - 1 ? `<button onclick="moveTaskDown('${g.id}', '${t.id}')" class="move-task-btn">⬇️</button>` : ''}</div></td>
-                                        <td class="px-2 py-4"><input type="checkbox" class="rounded" ${!canEdit ? 'disabled' : ''}></td>
-                                        <td class="px-2 py-4 font-semibold"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTask('${g.id}', '${t.id}', 'title', this.value)"` : 'disabled'} class="bg-transparent w-full outline-none focus:text-monday-blue ${!canEdit ? 'opacity-50' : ''}"></td>
-                                        <td class="px-2 py-4"><div class="flex justify-center"><select onchange="updateTask('${g.id}', '${t.id}', 'ownerId', this.value)" ${isManager ? '' : 'disabled'} class="bg-transparent text-xs font-bold outline-none cursor-pointer ${!isManager ? 'opacity-50' : ''}">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}</select></div></td>
-                                        <td class="px-2 py-4"><div class="status-trigger ${!canEdit ? 'disabled' : ''}" style="background: ${STATUS_TYPES[t.status]?.color || '#c4c4c4'};" ${canEdit ? `onclick='showDropdown(this, ${JSON.stringify(statusOptions).replace(/'/g, "\\'")}, (value) => updateTask("${g.id}", "${t.id}", "status", value))'` : ''}>${STATUS_TYPES[t.status]?.label || 'A Fazer'}</div></td>
-                                        <td class="px-2 py-4"><div class="status-trigger ${!isManager ? 'disabled' : ''}" style="background: ${PRIORITY_TYPES[t.priority]?.color || '#579bfc'};" ${isManager ? `onclick='showDropdown(this, ${JSON.stringify(priorityOptions).replace(/'/g, "\\'")}, (value) => updateTask("${g.id}", "${t.id}", "priority", value))'` : ''}>${PRIORITY_TYPES[t.priority]?.label || 'Média'}</div></td>
-                                        <td class="px-2 py-4"><div class="flex items-center gap-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1.5 justify-center"><input type="date" value="${t.timeline?.[0] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}', '${t.id}', 0, this.value)"` : 'disabled'} class="bg-transparent outline-none w-20 ${!isManager ? 'opacity-50' : ''}"><span>-</span><input type="date" value="${t.timeline?.[1] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}', '${t.id}', 1, this.value)"` : 'disabled'} class="bg-transparent outline-none w-20 ${!isManager ? 'opacity-50' : ''}"></div></td>
-                                        <td class="px-2 py-4"><div class="text-[10px] font-bold px-2 py-1 rounded ${dueStatus.class} text-center">${dueStatus.label}</div></td>
-                                        ${isManager ? `<td class="px-4 py-4 text-center"><button onclick="deleteTask('${g.id}', '${t.id}')" class="text-slate-300 hover:text-red-500">🗑</button></td>` : ''}
-                                    </tr>`;
+                                        <td class="px-2 py-4"><div class="flex gap-1">${isManager && index > 0 ? `<button onclick="moveTaskUp('${g.id}', '${t.id}')" class="move-task-btn">⬆️</button>` : ''}${isManager && index < array.length - 1 ? `<button onclick="moveTaskDown('${g.id}', '${t.id}')" class="move-task-btn">⬇️</button>` : ''}</div> </td>
+                                        <td class="px-2 py-4"><input type="checkbox" class="rounded" ${!canEdit ? 'disabled' : ''}> </td>
+                                        <td class="px-2 py-4 font-semibold"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTask('${g.id}', '${t.id}', 'title', this.value)"` : 'disabled'} class="bg-transparent w-full outline-none focus:text-monday-blue ${!canEdit ? 'opacity-50' : ''}"> </td>
+                                        <td class="px-2 py-4"><div class="flex justify-center"><select onchange="updateTask('${g.id}', '${t.id}', 'ownerId', this.value)" ${isManager ? '' : 'disabled'} class="bg-transparent text-xs font-bold outline-none cursor-pointer ${!isManager ? 'opacity-50' : ''}">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}</select></div> </td>
+                                        <td class="px-2 py-4"><div class="status-trigger ${!canEdit ? 'disabled' : ''}" style="background: ${STATUS_TYPES[t.status]?.color || '#c4c4c4'};" ${canEdit ? `onclick='showDropdown(this, ${JSON.stringify(statusOptions).replace(/'/g, "\\'")}, (value) => updateTask("${g.id}", "${t.id}", "status", value))'` : ''}>${STATUS_TYPES[t.status]?.label || 'A Fazer'}</div> </td>
+                                        <td class="px-2 py-4"><div class="status-trigger ${!isManager ? 'disabled' : ''}" style="background: ${PRIORITY_TYPES[t.priority]?.color || '#579bfc'};" ${isManager ? `onclick='showDropdown(this, ${JSON.stringify(priorityOptions).replace(/'/g, "\\'")}, (value) => updateTask("${g.id}", "${t.id}", "priority", value))'` : ''}>${PRIORITY_TYPES[t.priority]?.label || 'Média'}</div> </td>
+                                        <td class="px-2 py-4"><div class="flex items-center gap-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1.5 justify-center"><input type="date" value="${t.timeline?.[0] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}', '${t.id}', 0, this.value)"` : 'disabled'} class="bg-transparent outline-none w-20 ${!isManager ? 'opacity-50' : ''}"><span>-</span><input type="date" value="${t.timeline?.[1] || ''}" ${isManager ? `onchange="updateTaskDate('${g.id}', '${t.id}', 1, this.value)"` : 'disabled'} class="bg-transparent outline-none w-20 ${!isManager ? 'opacity-50' : ''}"></div> </td>
+                                        <td class="px-2 py-4"><div class="text-[10px] font-bold px-2 py-1 rounded ${dueStatus.class} text-center">${dueStatus.label}</div> </td>
+                                        ${isManager ? `<td class="px-4 py-4 text-center"><button onclick="deleteTask('${g.id}', '${t.id}')" class="text-slate-300 hover:text-red-500">🗑</button> </td>` : ''}
+                                     </tr>`;
                                 }).join('')}
                                 ${isManager ? `<tr><td colspan="9" class="p-2"><button onclick="addNewTask('${g.id}')" class="w-full py-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-slate-400 text-xs font-bold hover:bg-slate-50 transition-colors">+ Adicionar Tarefa</button></td></tr>` : ''}
                             </tbody>
@@ -1451,7 +1493,21 @@
         }
 
         // --- HANDLERS ---
-        function changeMainView(v) { state.activeView = v; state.searchQuery = ''; render(); }
+        function changeMainView(v) { 
+            state.activeView = v; 
+            state.searchQuery = ''; 
+            
+            // Atualizar bottom nav
+            document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
+            if (v === 'home') document.getElementById('bottom-home')?.classList.add('active');
+            if (v === 'dashboard') document.getElementById('bottom-dash')?.classList.add('active');
+            if (v === 'team') document.getElementById('bottom-team')?.classList.add('active');
+            if (v === 'reports') document.getElementById('bottom-reports')?.classList.add('active');
+            
+            render(); 
+            save(); 
+        }
+        
         function changeView(v) { state.boardView = v; render(); }
         function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); }
         function filterTasks(val) { state.searchQuery = val; render(); }
