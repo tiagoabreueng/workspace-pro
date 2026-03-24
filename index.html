@@ -6,654 +6,891 @@
     <meta name="theme-color" content="#0073ea">
     <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Figtree', 'sans-serif'] },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        monday: {
-                            blue: '#0073ea',
-                            green: '#00ca72',
-                            red: '#fb275d',
-                            orange: '#ffad00',
-                            purple: '#a25ddc',
-                            gray: '#c4c4c4',
-                            bg: '#f5f6f8',
-                            dark: '#111122'
-                        }
+                        primary: '#0073ea',
+                        success: '#00ca72',
+                        danger: '#fb275d',
+                        warning: '#ffad00',
+                        purple: '#a25ddc'
                     }
                 }
             }
         }
     </script>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Scroll personalizado */
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark .custom-scroll::-webkit-scrollbar-track { background: #1e1e2e; }
-        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #444; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
         
+        /* Sidebar redimensionável */
         .resizable-container { display: flex; height: 100%; position: relative; }
-        .sidebar-resizable { position: relative; min-width: 180px; max-width: 400px; width: 240px; transition: none; }
+        .sidebar-resizable { position: relative; min-width: 200px; max-width: 400px; width: 260px; transition: none; background: white; }
+        .dark .sidebar-resizable { background: #0f0f1a; }
         .resize-handle { position: absolute; right: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; background: transparent; z-index: 100; }
-        .resize-handle:hover, .resize-handle:active { background: #0073ea; }
+        .resize-handle:hover { background: #0073ea; }
         
-        .status-trigger { cursor: pointer; transition: filter 0.2s; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
-        .status-trigger:hover { filter: brightness(0.9); }
+        /* Cards e animações */
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
         
-        .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; transition: width 0.3s ease; }
+        .status-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .status-badge:hover { filter: brightness(0.9); transform: scale(0.98); }
         
-        .login-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999999; backdrop-filter: blur(5px); }
-        .login-box { background: white; border-radius: 24px; padding: 40px; width: 450px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        .dark .login-box { background: #181829; border: 1px solid #2d2d3f; }
+        .priority-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 16px; font-size: 10px; font-weight: 600; }
         
-        .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); padding: 4px; min-width: 180px; }
-        .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
+        .progress-bar-custom { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+        .progress-fill-custom { height: 100%; background: #0073ea; border-radius: 3px; transition: width 0.3s ease; }
         
-        .group-collapse-btn { cursor: pointer; display: inline-block; transition: transform 0.2s; margin-right: 8px; }
-        .group-collapse-btn.collapsed { transform: rotate(-90deg); }
+        /* Kanban */
+        .kanban-column { min-width: 280px; max-width: 320px; background: #f8fafc; border-radius: 12px; padding: 12px; }
+        .dark .kanban-column { background: #1a1a2a; }
+        .kanban-card { background: white; border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid #e2e8f0; }
+        .dark .kanban-card { background: #0f0f1a; border-color: #2d2d3f; }
+        .kanban-card:hover { transform: translateX(2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        /* Tabela */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { text-align: left; padding: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .dark .data-table th { border-bottom-color: #2d2d3f; color: #94a3b8; }
+        .dark .data-table td { border-bottom-color: #1e1e2e; }
+        
+        /* Modais */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999; }
+        .modal-container { background: white; border-radius: 24px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 28px; }
+        .dark .modal-container { background: #1a1a2a; border: 1px solid #2d2d3f; }
+        
+        /* Dropdown */
+        .dropdown-menu { position: fixed; background: white; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); padding: 8px; min-width: 160px; z-index: 100000; border: 1px solid #e2e8f0; }
+        .dark .dropdown-menu { background: #1e1e2e; border-color: #2d2d3f; }
+        .dropdown-item { padding: 8px 16px; cursor: pointer; border-radius: 8px; font-size: 13px; transition: all 0.2s; }
+        .dropdown-item:hover { background: #f1f5f9; }
+        .dark .dropdown-item:hover { background: #2d2d3f; }
+        
+        /* Botões */
+        .btn-primary { background: #0073ea; color: white; padding: 8px 20px; border-radius: 10px; font-weight: 600; font-size: 13px; transition: all 0.2s; border: none; cursor: pointer; }
+        .btn-primary:hover { background: #005bb5; transform: translateY(-1px); }
+        .btn-secondary { background: #e2e8f0; color: #1e293b; padding: 8px 20px; border-radius: 10px; font-weight: 600; font-size: 13px; transition: all 0.2s; cursor: pointer; }
+        .dark .btn-secondary { background: #2d2d3f; color: #e2e8f0; }
+        
+        .group-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .group-collapse { cursor: pointer; transition: transform 0.2s; font-size: 12px; }
+        .group-collapse.collapsed { transform: rotate(-90deg); }
         .group-content.collapsed { display: none; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .toast-notification { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 40px; font-weight: 500; z-index: 99999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
         
         @media (max-width: 768px) {
-            .sidebar-resizable { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; background: white; }
-            .dark .sidebar-resizable { background: #181829; }
+            .sidebar-resizable { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s; }
             .sidebar-resizable.open { left: 0; }
             .mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
             .mobile-overlay.open { display: block; }
-            .menu-toggle { display: block; cursor: pointer; }
+            .menu-toggle { display: block; }
         }
         @media (min-width: 769px) { .menu-toggle, .mobile-overlay { display: none; } }
         
-        .table-container { overflow-x: auto; border-radius: 12px; }
-        table { min-width: 1300px; border-collapse: collapse; }
-        th, td { padding: 12px 8px; vertical-align: middle; }
-        input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; font-weight: bold; width: 85px; }
-        .board-name { word-break: break-word; white-space: normal; line-height: 1.3; }
+        input, select, textarea { background: transparent; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; outline: none; font-size: 13px; }
+        .dark input, .dark select, .dark textarea { border-color: #2d2d3f; color: #e2e8f0; }
+        input:focus, select:focus { border-color: #0073ea; }
     </style>
 </head>
-<body class="bg-monday-bg text-slate-800 dark:bg-[#0b0b15] dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
+<body class="bg-[#f5f6f8] dark:bg-[#0a0a12] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden">
 
-    <div id="loginModal" class="login-modal">
-        <div class="login-box">
+    <!-- MODAL LOGIN -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-container">
             <h2 class="text-2xl font-black mb-2">🔐 Workspace Pro</h2>
-            <p class="text-sm text-slate-500 mb-6">Selecione seu usuário e digite a senha</p>
-            <div id="userList" class="max-h-80 overflow-y-auto mb-4 border rounded-xl"></div>
-            <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full px-4 py-3 border rounded-xl mb-4 outline-none focus:border-monday-blue" disabled>
-            <button onclick="handleLogin()" id="loginButton" class="w-full py-3 bg-monday-blue text-white rounded-xl font-bold" disabled>Entrar</button>
+            <p class="text-slate-500 text-sm mb-6">Selecione um usuário e digite a senha</p>
+            <div id="userList" class="space-y-2 max-h-80 overflow-y-auto mb-4"></div>
+            <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full mb-4" disabled>
+            <button onclick="handleLogin()" id="loginBtn" class="btn-primary w-full" disabled>Entrar</button>
         </div>
     </div>
 
-    <header class="h-14 bg-white dark:bg-[#181829] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-50">
-        <div class="flex items-center gap-8">
-            <div class="flex items-center gap-2 cursor-pointer" onclick="changeMainView('home')">
-                <div class="w-8 h-8 bg-gradient-to-br from-monday-blue to-monday-purple rounded-lg flex items-center justify-center text-white font-bold">W</div>
-                <span class="font-black text-lg">Workspace<span class="text-monday-blue">Pro</span></span>
+    <!-- MODAL MEMBRO -->
+    <div id="memberModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <h2 id="memberModalTitle" class="text-2xl font-black mb-4">👥 Adicionar Membro</h2>
+            <input type="hidden" id="memberId">
+            <input type="text" id="memberName" placeholder="Nome completo" class="w-full mb-3">
+            <input type="text" id="memberUsername" placeholder="Nome de usuário" class="w-full mb-3">
+            <input type="password" id="memberPassword" placeholder="Senha" class="w-full mb-3">
+            <input type="text" id="memberRole" placeholder="Cargo/Função" class="w-full mb-3">
+            <select id="memberType" class="w-full mb-4">
+                <option value="executor">Executor</option>
+                <option value="manager">Gerente</option>
+            </select>
+            <div class="flex gap-3">
+                <button onclick="saveMember()" class="btn-primary flex-1">Salvar</button>
+                <button onclick="closeMemberModal()" class="btn-secondary">Cancelar</button>
             </div>
-            <nav class="flex items-center gap-1">
-                <button onclick="changeMainView('home')" id="btn-home" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">🏠 Início</button>
-                <button onclick="changeMainView('dashboard')" id="btn-dash" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">📊 Dashboard</button>
-                <button onclick="changeMainView('team')" id="btn-team" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">👥 Equipe</button>
-                <button onclick="changeMainView('reports')" id="btn-reports" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">📈 Relatórios</button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="h-14 bg-white dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shadow-sm">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="changeView('home')">
+                <div class="w-8 h-8 bg-gradient-to-br from-primary to-purple rounded-xl flex items-center justify-center text-white font-bold">W</div>
+                <span class="font-black text-xl">Workspace<span class="text-primary">Pro</span></span>
+            </div>
+            <nav class="flex gap-1">
+                <button onclick="changeView('home')" id="nav-home" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">🏠 Início</button>
+                <button onclick="changeView('dashboard')" id="nav-dash" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">📊 Dashboard</button>
+                <button onclick="changeView('team')" id="nav-team" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">👥 Equipe</button>
+                <button onclick="changeView('reports')" id="nav-reports" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">📈 Relatórios</button>
             </nav>
-            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 rounded-full" onclick="toggleMobileSidebar()">☰</button>
+            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 rounded-lg" onclick="toggleMobileSidebar()">☰</button>
         </div>
         <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-full cursor-pointer" onclick="toggleUserMenu()">
-                <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white">?</div>
-                <span id="currentUserName" class="text-sm font-bold">Não logado</span>
-                <span id="currentUserRole" class="text-xs px-2 py-0.5 rounded-full bg-slate-200">-</span>
+            <div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-full px-3 py-1.5 cursor-pointer" onclick="toggleUserMenu()">
+                <div id="userAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"></div>
+                <span id="userName" class="text-sm font-semibold">Carregando...</span>
+                <span id="userBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700"></span>
             </div>
             <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 rounded-full">🌓</button>
-            <button onclick="exportJSON()" class="text-xs px-2 py-1 border rounded-md">📤 Exportar</button>
-            <label class="text-xs px-2 py-1 bg-monday-blue text-white rounded-md cursor-pointer">📥 Importar <input type="file" class="hidden" accept=".json" onchange="importJSON(event)"></label>
+            <button onclick="exportData()" class="text-xs px-3 py-1.5 border rounded-lg hover:bg-slate-100">📤 Exportar</button>
+            <label class="text-xs px-3 py-1.5 bg-primary text-white rounded-lg cursor-pointer hover:brightness-110">
+                📥 Importar <input type="file" class="hidden" accept=".json" onchange="importData(event)">
+            </label>
         </div>
     </header>
 
-    <div id="userMenu" class="hidden absolute right-24 top-14 bg-white dark:bg-[#181829] border rounded-lg shadow-xl z-50 w-40">
-        <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">🚪 Sair</button>
+    <div id="userMenu" class="dropdown-menu hidden" style="top: 70px; right: 80px;">
+        <div class="dropdown-item" onclick="logout()">🚪 Sair</div>
     </div>
 
     <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
-    <div id="dropdownPortal"></div>
+    <div id="dropdownContainer"></div>
 
+    <!-- MAIN CONTAINER -->
     <div class="resizable-container flex-1 overflow-hidden">
-        <aside id="sidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase">Quadros</h3>
-                <button onclick="createNewBoard()" class="text-monday-blue text-xl hover:scale-110" id="newBoardBtn">+</button>
+        <aside id="sidebar" class="sidebar-resizable border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xs font-bold text-slate-400 uppercase">📋 Projetos</h3>
+                <button onclick="createProject()" class="text-primary text-xl hover:scale-110 transition" id="newProjectBtn">+</button>
             </div>
-            <div id="board-list" class="space-y-2 text-sm font-medium mb-8"></div>
-            <div class="mt-auto border-t pt-4">
-                <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase mb-4">
-                    <span>Membros</span>
-                    <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110" id="addMemberBtn">+</button>
-                </div>
-                <div id="sidebar-team" class="flex flex-wrap gap-1"></div>
+            <div id="projectList" class="space-y-2"></div>
+            <div class="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3">👥 Membros</h3>
+                <div id="memberListSidebar" class="flex flex-wrap gap-2"></div>
+                <button onclick="openMemberModal()" class="mt-3 text-xs text-primary font-semibold" id="addMemberSidebarBtn">+ Adicionar membro</button>
             </div>
             <div id="resizeHandle" class="resize-handle"></div>
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <div id="board-header" class="hidden bg-white dark:bg-[#181829] border-b px-8 py-4">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3">
-                            <h2 id="board-title" class="text-2xl font-bold outline-none board-name" contenteditable="false" onblur="renameBoard(this.innerText)">Carregando...</h2>
-                            <button onclick="deleteActiveBoard()" class="text-xs text-red-500 font-bold" id="deleteBoardBtn">Excluir</button>
-                        </div>
+            <div id="boardHeader" class="hidden bg-white dark:bg-[#0f0f1a] border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <h2 id="projectTitle" class="text-2xl font-bold outline-none board-name" contenteditable="false" onblur="renameProject(this.innerText)">Projeto</h2>
+                        <button onclick="deleteCurrentProject()" class="text-xs text-danger font-semibold" id="deleteProjectBtn">Excluir</button>
                     </div>
-                    <div class="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                        <button onclick="changeView('table')" class="view-btn px-4 py-1.5 rounded-md text-xs font-bold" id="view-table">📋 Tabela</button>
-                        <button onclick="changeView('kanban')" class="view-btn px-4 py-1.5 rounded-md text-xs font-bold" id="view-kanban">🧱 Kanban</button>
+                    <div class="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        <button onclick="setBoardView('table')" id="view-table" class="px-4 py-1.5 rounded-lg text-xs font-bold transition">📋 Tabela</button>
+                        <button onclick="setBoardView('kanban')" id="view-kanban" class="px-4 py-1.5 rounded-lg text-xs font-bold transition">🧱 Kanban</button>
                     </div>
                 </div>
-                <div class="flex gap-4">
-                    <button onclick="addNewGroup()" class="bg-monday-blue text-white px-4 py-1.5 rounded-md text-xs font-bold">Novo Grupo</button>
-                    <input type="text" oninput="filterTasks(this.value)" placeholder="🔍 Pesquisar..." class="bg-slate-100 dark:bg-slate-800 rounded-md px-4 py-1.5 text-xs w-64 outline-none">
+                <div class="flex gap-3">
+                    <button onclick="addGroup()" class="btn-primary text-xs py-2">+ Novo Grupo</button>
+                    <input type="text" oninput="filterTasks(this.value)" placeholder="🔍 Pesquisar tarefas..." class="text-sm w-64">
                 </div>
             </div>
-            <div id="view-container" class="flex-1 overflow-y-auto p-8 custom-scroll"></div>
+            <div id="mainContent" class="flex-1 overflow-y-auto p-6 custom-scroll"></div>
         </main>
     </div>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-[9999]"></div>
-
-    <div id="memberModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[999999]">
-        <div class="bg-white dark:bg-[#181829] rounded-2xl p-8 w-[500px] max-w-[90%] max-h-[90vh] overflow-y-auto">
-            <h2 id="memberModalTitle" class="text-2xl font-black mb-4">Adicionar Membro</h2>
-            <input type="hidden" id="memberId">
-            <input type="text" id="memberName" placeholder="Nome" class="w-full px-4 py-3 border rounded-xl mb-3">
-            <input type="text" id="memberUsername" placeholder="Usuário" class="w-full px-4 py-3 border rounded-xl mb-3">
-            <input type="password" id="memberPassword" placeholder="Senha" class="w-full px-4 py-3 border rounded-xl mb-3">
-            <select id="memberType" class="w-full px-4 py-3 border rounded-xl mb-4">
-                <option value="executor">Executor</option>
-                <option value="manager">Gerente</option>
-            </select>
-            <button onclick="saveMember()" class="w-full py-3 bg-monday-blue text-white rounded-xl font-bold mb-2">Salvar</button>
-            <button onclick="closeMemberModal()" class="w-full py-3 border rounded-xl">Cancelar</button>
-        </div>
-    </div>
+    <div id="toast" class="toast-notification">Mensagem</div>
 
     <script>
-        // Estado inicial com dados de exemplo
-        let state = {
-            version: '1.0.0',
-            lastModified: new Date().toISOString(),
-            activeView: 'home',
-            boardView: 'table',
-            activeBoardId: null,
-            darkMode: false,
-            searchQuery: '',
+        // ==================== DADOS INICIAIS ====================
+        let appState = {
             currentUser: null,
+            currentProjectId: null,
+            currentView: 'home',
+            boardView: 'table',
+            searchQuery: '',
             collapsedGroups: {},
-            team: [
-                { id: 'admin1', username: 'admin', name: 'Administrador', password: btoa('admin123'), color: '#0073ea', role: 'Gerente', type: 'manager', firstAccess: false },
-                { id: 'user1', username: 'joao', name: 'João Silva', password: btoa('123456'), color: '#00ca72', role: 'Desenvolvedor', type: 'executor', firstAccess: false }
-            ],
-            boards: [
-                {
-                    id: 1,
-                    name: 'Projeto Principal',
-                    managerId: 'admin1',
-                    groups: [
-                        {
-                            id: 'g1',
-                            name: 'Desenvolvimento',
-                            color: '#0073ea',
-                            tasks: [
-                                { id: 't1', title: 'Configurar ambiente', ownerId: 'user1', status: 'Concluido', priority: 'Alta', timeline: ['2024-01-10', '2024-01-15'] },
-                                { id: 't2', title: 'Desenvolver frontend', ownerId: 'user1', status: 'Trabalhando', priority: 'Alta', timeline: ['2024-01-16', '2024-01-25'] },
-                                { id: 't3', title: 'Testes unitários', ownerId: 'user1', status: 'Nao Iniciado', priority: 'Media', timeline: ['2024-01-26', '2024-01-30'] }
-                            ]
-                        },
-                        {
-                            id: 'g2',
-                            name: 'Documentação',
-                            color: '#a25ddc',
-                            tasks: [
-                                { id: 't4', title: 'Documentar API', ownerId: 'user1', status: 'Nao Iniciado', priority: 'Baixa', timeline: ['2024-01-20', '2024-01-28'] }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            darkMode: false,
+            projects: [],
+            members: []
         };
 
-        const STATUS_TYPES = {
-            'Nao Iniciado': { label: 'A Fazer', color: '#c4c4c4' },
-            'Trabalhando': { label: 'Em Andamento', color: '#0073ea' },
-            'Travado': { label: 'Travado', color: '#fb275d' },
-            'Concluido': { label: 'Concluído', color: '#00ca72' }
+        const STATUS_CONFIG = {
+            'pending': { label: 'A Fazer', color: '#94a3b8', bg: '#f1f5f9' },
+            'progress': { label: 'Em Andamento', color: '#0073ea', bg: '#e6f0ff' },
+            'blocked': { label: 'Travado', color: '#fb275d', bg: '#ffe6ec' },
+            'done': { label: 'Concluído', color: '#00ca72', bg: '#e6f9ef' }
         };
 
-        const PRIORITY_TYPES = {
-            'Baixa': { label: 'Baixa', color: '#579bfc' },
-            'Media': { label: 'Média', color: '#a25ddc' },
-            'Alta': { label: 'Alta', color: '#ffad00' },
-            'Critica': { label: 'Crítica', color: '#fb275d' }
+        const PRIORITY_CONFIG = {
+            'low': { label: 'Baixa', color: '#579bfc' },
+            'medium': { label: 'Média', color: '#a25ddc' },
+            'high': { label: 'Alta', color: '#ffad00' },
+            'critical': { label: 'Crítica', color: '#fb275d' }
         };
 
-        function showToast(msg, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.background = isError ? '#ef4444' : '#1e293b';
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 3000);
+        // ==================== PERSISTÊNCIA ====================
+        function saveToStorage() {
+            const data = {
+                projects: appState.projects,
+                members: appState.members,
+                collapsedGroups: appState.collapsedGroups,
+                darkMode: appState.darkMode
+            };
+            localStorage.setItem('workspace_data', JSON.stringify(data));
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem('workspace_data', JSON.stringify(state));
-        }
-
-        function loadFromLocalStorage() {
+        function loadFromStorage() {
             const saved = localStorage.getItem('workspace_data');
             if (saved) {
                 try {
-                    const parsed = JSON.parse(saved);
-                    state = { ...state, ...parsed };
-                    if (!state.collapsedGroups) state.collapsedGroups = {};
-                    if (!state.boards) state.boards = [];
-                    if (!state.team) state.team = [];
-                    showToast('Dados carregados!');
+                    const data = JSON.parse(saved);
+                    appState.projects = data.projects || [];
+                    appState.members = data.members || [];
+                    appState.collapsedGroups = data.collapsedGroups || {};
+                    appState.darkMode = data.darkMode || false;
+                    
+                    if (appState.darkMode) document.documentElement.classList.add('dark');
                 } catch(e) { console.error(e); }
             }
+            
+            // Dados iniciais se estiver vazio
+            if (appState.members.length === 0) {
+                appState.members = [
+                    { id: 'm1', name: 'Administrador', username: 'admin', password: btoa('admin123'), role: 'Gerente', type: 'manager', color: '#0073ea', avatar: 'A' },
+                    { id: 'm2', name: 'João Silva', username: 'joao', password: btoa('123456'), role: 'Desenvolvedor', type: 'executor', color: '#00ca72', avatar: 'J' }
+                ];
+            }
+            
+            if (appState.projects.length === 0) {
+                appState.projects = [{
+                    id: 'p1',
+                    name: 'Projeto Principal',
+                    managerId: 'm1',
+                    groups: [
+                        { id: 'g1', name: 'Desenvolvimento', color: '#0073ea', tasks: [
+                            { id: 't1', title: 'Configurar ambiente', ownerId: 'm2', status: 'done', priority: 'high', dueDate: '2024-02-15' },
+                            { id: 't2', title: 'Desenvolver frontend', ownerId: 'm2', status: 'progress', priority: 'high', dueDate: '2024-02-28' },
+                            { id: 't3', title: 'Testes unitários', ownerId: 'm2', status: 'pending', priority: 'medium', dueDate: '2024-03-05' }
+                        ] },
+                        { id: 'g2', name: 'Design', color: '#a25ddc', tasks: [
+                            { id: 't4', title: 'Criar protótipos', ownerId: 'm2', status: 'done', priority: 'medium', dueDate: '2024-02-10' }
+                        ] }
+                    ]
+                }];
+            }
+            
+            saveToStorage();
         }
 
-        function exportJSON() {
-            const dataStr = JSON.stringify(state, null, 2);
-            const blob = new Blob([dataStr], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
-            a.href = url;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('📤 Exportado!');
+        // ==================== UTILIDADES ====================
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#fb275d' : '#1e293b';
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 2500);
         }
 
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    state = { ...state, ...imported };
-                    if (!state.collapsedGroups) state.collapsedGroups = {};
-                    saveToLocalStorage();
-                    renderUserList();
-                    render();
-                    showToast('📥 Importado!');
-                } catch(err) { showToast('Erro ao importar', true); }
-            };
-            reader.readAsText(file);
-        }
+        function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
 
-        function renderUserList() {
-            const container = document.getElementById('userList');
-            if (!container) return;
-            container.innerHTML = state.team.map(user => `
-                <div onclick="selectUser('${user.id}')" class="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 border-b">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${user.color}">${user.name.charAt(0)}</div>
-                    <div><div class="font-bold">${escapeHtml(user.name)}</div><div class="text-xs text-slate-400">@${escapeHtml(user.username)}</div></div>
-                    ${user.firstAccess ? '<span class="ml-auto text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
-                </div>
-            `).join('');
-        }
+        function isManager() { return appState.currentUser?.type === 'manager'; }
+        function canEditTask(task) { return isManager() || task?.ownerId === appState.currentUser?.id; }
 
-        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-
-        let selectedUserId = null;
-        function selectUser(id) {
-            selectedUserId = id;
-            document.getElementById('loginPassword').disabled = false;
-            document.getElementById('loginButton').disabled = false;
-            document.getElementById('loginPassword').focus();
-            renderUserList();
-        }
-
-        function handleLogin() {
-            const password = document.getElementById('loginPassword').value;
-            const user = state.team.find(u => u.id === selectedUserId);
-            if (!user) { alert('Selecione um usuário'); return; }
-            if (btoa(password) === user.password) {
-                state.currentUser = user;
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('currentUserAvatar').style.background = user.color;
-                document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
-                document.getElementById('currentUserName').textContent = user.name;
-                document.getElementById('currentUserRole').textContent = user.type === 'manager' ? 'Gerente' : 'Executor';
-                updateUIBasedOnPermissions();
-                render();
-                showToast(`Bem-vindo, ${user.name}!`);
-            } else { alert('Senha incorreta!'); }
-        }
-
-        function logout() {
-            state.currentUser = null;
-            document.getElementById('loginModal').style.display = 'flex';
-            document.getElementById('currentUserAvatar').textContent = '?';
-            document.getElementById('currentUserName').textContent = 'Não logado';
-            document.getElementById('currentUserRole').textContent = '-';
-            render();
-        }
-
-        function toggleUserMenu() {
-            document.getElementById('userMenu').classList.toggle('hidden');
-        }
-
-        function isCurrentUserManager() { return state.currentUser && state.currentUser.type === 'manager'; }
-        function canEditTask(task) { return state.currentUser && (state.currentUser.type === 'manager' || task.ownerId === state.currentUser.id); }
-        function filterTasksByUser(tasks) { if (!state.currentUser) return []; if (state.currentUser.type === 'manager') return tasks; return tasks.filter(t => t.ownerId === state.currentUser.id); }
-        function calculateDueDateStatus(dueDate, taskStatus) {
-            if (taskStatus === 'Concluido') return { status: 'ok', class: 'text-green-600', label: 'Concluído' };
-            if (!dueDate) return { status: 'none', class: '', label: 'Sem data' };
+        function getMember(id) { return appState.members.find(m => m.id === id); }
+        function getDueStatus(dueDate, status) {
+            if (status === 'done') return { text: 'Concluído', class: 'text-success' };
+            if (!dueDate) return { text: 'Sem data', class: 'text-slate-400' };
             const today = new Date(); today.setHours(0,0,0,0);
-            const due = new Date(dueDate); due.setHours(0,0,0,0);
+            const due = new Date(dueDate);
             const diff = Math.ceil((due - today) / (1000*60*60*24));
-            if (diff < 0) return { status: 'overdue', class: 'text-red-500 font-bold', label: `Atrasado ${Math.abs(diff)}d` };
-            if (diff === 0) return { status: 'today', class: 'text-orange-500 font-bold', label: 'Vence hoje' };
-            if (diff <= 7) return { status: 'week', class: 'text-blue-500', label: `${diff}d` };
-            return { status: 'ok', class: 'text-green-600', label: 'OK' };
+            if (diff < 0) return { text: `Atrasado ${Math.abs(diff)}d`, class: 'text-danger font-bold' };
+            if (diff === 0) return { text: 'Vence hoje', class: 'text-warning font-bold' };
+            if (diff <= 7) return { text: `${diff} dias`, class: 'text-primary' };
+            return { text: `${diff} dias`, class: 'text-slate-500' };
         }
 
-        function calculateProjectProgress(board) {
-            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
+        function getProjectProgress(project) {
+            const allTasks = project.groups?.flatMap(g => g.tasks || []) || [];
             if (allTasks.length === 0) return 0;
-            const completed = allTasks.filter(t => t.status === 'Concluido').length;
-            return Math.round((completed / allTasks.length) * 100);
+            const done = allTasks.filter(t => t.status === 'done').length;
+            return Math.round((done / allTasks.length) * 100);
         }
 
-        function toggleGroup(groupId) { state.collapsedGroups[groupId] = !state.collapsedGroups[groupId]; render(); }
-        function isGroupCollapsed(groupId) { return state.collapsedGroups[groupId] || false; }
-        function filterTasks(val) { state.searchQuery = val; render(); }
-        function changeMainView(v) { state.activeView = v; render(); }
-        function changeView(v) { state.boardView = v; render(); }
-        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); saveToLocalStorage(); }
-        function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
-        function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobileOverlay').classList.remove('open'); }
+        function toggleGroup(groupId) { appState.collapsedGroups[groupId] = !appState.collapsedGroups[groupId]; saveToStorage(); render(); }
+        function isGroupCollapsed(groupId) { return appState.collapsedGroups[groupId] || false; }
+        function filterTasks(query) { appState.searchQuery = query; render(); }
 
-        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); }
-
-        function updateUIBasedOnPermissions() {
-            const isManager = isCurrentUserManager();
-            const newBoardBtn = document.getElementById('newBoardBtn');
-            const addMemberBtn = document.getElementById('addMemberBtn');
-            const deleteBoardBtn = document.getElementById('deleteBoardBtn');
-            const boardTitle = document.getElementById('board-title');
-            if (newBoardBtn) newBoardBtn.style.display = isManager ? 'block' : 'none';
-            if (addMemberBtn) addMemberBtn.style.display = isManager ? 'block' : 'none';
-            if (deleteBoardBtn) deleteBoardBtn.style.display = isManager ? 'block' : 'none';
-            if (boardTitle) boardTitle.contentEditable = isManager;
-        }
-
-        function renderSidebar() {
-            const list = document.getElementById('board-list');
-            if (!list) return;
-            list.innerHTML = state.boards.map(b => `
-                <div onclick="selectBoard(${b.id})" class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${state.activeBoardId === b.id && state.activeView === 'board' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-monday-blue' : ''}">
-                    <span>📋</span>
-                    <div class="flex-1"><div class="text-sm font-medium">${escapeHtml(b.name)}</div><div class="progress-bar mt-1 w-full"><div class="progress-fill" style="width: ${calculateProjectProgress(b)}%"></div></div></div>
-                </div>
-            `).join('');
-            const teamList = document.getElementById('sidebar-team');
-            if (teamList) teamList.innerHTML = state.team.map(m => `<div class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer" style="background: ${m.color}" title="${escapeHtml(m.name)}">${m.name.charAt(0)}</div>`).join('');
-        }
-
+        // ==================== RENDERIZAÇÃO ====================
         function render() {
-            if (!state.currentUser) return;
-            renderSidebar();
-            updateUIBasedOnPermissions();
-            const container = document.getElementById('view-container');
-            const header = document.getElementById('board-header');
-            if (!container) return;
+            if (!appState.currentUser) return;
             
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('text-monday-blue', 'bg-slate-50'));
-            if (header) header.classList.add('hidden');
+            // Sidebar projetos
+            const projectContainer = document.getElementById('projectList');
+            if (projectContainer) {
+                projectContainer.innerHTML = appState.projects.map(p => `
+                    <div onclick="selectProject('${p.id}')" class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition ${appState.currentProjectId === p.id && appState.currentView === 'project' ? 'bg-primary/10 text-primary' : ''}">
+                        <span>📁</span>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium">${escapeHtml(p.name)}</div>
+                            <div class="progress-bar-custom mt-1"><div class="progress-fill-custom" style="width: ${getProjectProgress(p)}%"></div></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
             
-            if (state.activeView === 'home') { container.innerHTML = renderHome(); document.getElementById('btn-home')?.classList.add('text-monday-blue'); }
-            else if (state.activeView === 'dashboard') { container.innerHTML = renderDashboard(); document.getElementById('btn-dash')?.classList.add('text-monday-blue'); setTimeout(initDashboardCharts, 100); }
-            else if (state.activeView === 'team') { container.innerHTML = renderTeamView(); document.getElementById('btn-team')?.classList.add('text-monday-blue'); }
-            else if (state.activeView === 'reports') { container.innerHTML = renderReports(); document.getElementById('btn-reports')?.classList.add('text-monday-blue'); }
-            else if (state.activeView === 'board' && state.activeBoardId) { 
-                header.classList.remove('hidden');
-                const board = state.boards.find(b => b.id === state.activeBoardId);
-                if (board) {
-                    document.getElementById('board-title').innerText = board.name;
-                    if (state.boardView === 'table') container.innerHTML = renderTable();
-                    else container.innerHTML = renderKanban();
+            // Sidebar membros
+            const memberContainer = document.getElementById('memberListSidebar');
+            if (memberContainer) {
+                memberContainer.innerHTML = appState.members.map(m => `
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white cursor-pointer hover:scale-110 transition" style="background: ${m.color}" title="${escapeHtml(m.name)}">${m.name.charAt(0)}</div>
+                `).join('');
+            }
+            
+            // Navegação
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('text-primary', 'bg-slate-100', 'dark:bg-slate-800'));
+            const header = document.getElementById('boardHeader');
+            
+            if (appState.currentView === 'home') {
+                if (header) header.classList.add('hidden');
+                document.getElementById('nav-home')?.classList.add('text-primary');
+                renderHome();
+            } else if (appState.currentView === 'dashboard') {
+                if (header) header.classList.add('hidden');
+                document.getElementById('nav-dash')?.classList.add('text-primary');
+                renderDashboard();
+            } else if (appState.currentView === 'team') {
+                if (header) header.classList.add('hidden');
+                document.getElementById('nav-team')?.classList.add('text-primary');
+                renderTeam();
+            } else if (appState.currentView === 'reports') {
+                if (header) header.classList.add('hidden');
+                document.getElementById('nav-reports')?.classList.add('text-primary');
+                renderReports();
+            } else if (appState.currentView === 'project' && appState.currentProjectId) {
+                if (header) header.classList.remove('hidden');
+                const project = appState.projects.find(p => p.id === appState.currentProjectId);
+                if (project) {
+                    document.getElementById('projectTitle').innerText = project.name;
+                    if (appState.boardView === 'table') renderTable(project);
+                    else renderKanban(project);
                 }
             }
         }
 
         function renderHome() {
-            const activeBoards = state.boards;
-            return `
-                <div class="max-w-6xl mx-auto py-12">
-                    <h1 class="text-4xl font-black mb-2">Olá, ${escapeHtml(state.currentUser.name)}!</h1>
-                    <p class="text-slate-500 mb-8">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${activeBoards.map(b => {
-                            const tasks = b.groups?.flatMap(g => g.tasks || []) || [];
-                            const userTasks = filterTasksByUser(tasks);
-                            const progress = calculateProjectProgress(b);
+            const container = document.getElementById('mainContent');
+            container.innerHTML = `
+                <div class="max-w-6xl mx-auto py-8">
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-black mb-2">Olá, ${escapeHtml(appState.currentUser.name)}!</h1>
+                        <p class="text-slate-500">${isManager() ? 'Gerencie seus projetos e equipe' : 'Acompanhe suas tarefas'}</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        ${appState.projects.map(p => {
+                            const progress = getProjectProgress(p);
                             return `
-                                <div onclick="selectBoard(${b.id})" class="bg-white dark:bg-[#181829] p-6 rounded-2xl border hover:shadow-xl cursor-pointer">
-                                    <h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3>
-                                    <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div>
-                                    <div class="flex justify-between text-sm"><span>${progress}%</span><span>${userTasks.length} tarefas</span></div>
+                                <div onclick="selectProject('${p.id}')" class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border border-slate-200 dark:border-slate-800 cursor-pointer card-hover">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-3xl">📋</span>
+                                        <span class="text-xs font-bold px-2 py-1 rounded-full ${progress === 100 ? 'bg-success/20 text-success' : 'bg-primary/20 text-primary'}">${progress}%</span>
+                                    </div>
+                                    <h3 class="font-bold text-lg mb-2">${escapeHtml(p.name)}</h3>
+                                    <div class="progress-bar-custom mb-2"><div class="progress-fill-custom" style="width: ${progress}%"></div></div>
+                                    <div class="flex justify-between text-xs text-slate-500">
+                                        <span>${p.groups?.flatMap(g => g.tasks || []).length || 0} tarefas</span>
+                                        <span>${p.groups?.length || 0} grupos</span>
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
+                        ${isManager() ? `
+                            <div onclick="createProject()" class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:border-primary transition flex flex-col items-center justify-center min-h-[180px]">
+                                <span class="text-4xl text-primary mb-2">+</span>
+                                <span class="text-sm font-semibold text-slate-500">Novo Projeto</span>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
         }
 
-        function renderTable() {
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            if (!board) return '<div class="p-8">Quadro não encontrado</div>';
+        function renderTable(project) {
+            const container = document.getElementById('mainContent');
+            const filteredTasks = (task) => task.title?.toLowerCase().includes(appState.searchQuery.toLowerCase());
             
-            return board.groups.map(g => {
-                const filteredTasks = filterTasksByUser(g.tasks || []);
-                const searchFiltered = filteredTasks.filter(t => t.title?.toLowerCase().includes(state.searchQuery.toLowerCase()));
-                const isCollapsed = isGroupCollapsed(g.id);
-                const isManager = isCurrentUserManager();
-                
-                return `
-                    <div class="mb-6">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span onclick="toggleGroup('${g.id}')" class="group-collapse-btn ${isCollapsed ? 'collapsed' : ''}">▼</span>
-                            <div class="w-1.5 h-6 rounded-full" style="background: ${g.color}"></div>
-                            <h3 class="font-black text-lg" ${isManager ? 'contenteditable="true" onblur="renameGroup(' + g.id + ', this.innerText)"' : ''}>${escapeHtml(g.name)}</h3>
-                            <span class="text-xs text-slate-400">${g.tasks?.length || 0} tarefas</span>
-                            ${isManager ? `<button onclick="deleteGroup(${g.id})" class="text-red-400 text-xs ml-2">🗑️</button>` : ''}
-                        </div>
-                        <div class="group-content ${isCollapsed ? 'collapsed' : ''}">
-                            <div class="table-container border rounded-xl bg-white dark:bg-[#181829]">
-                                <table>
-                                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-black">
-                                        <tr><th class="p-3">Tarefa</th><th class="p-3">Responsável</th><th class="p-3">Status</th><th class="p-3">Prazo</th>${isManager ? '<th></th>' : ''}</tr>
-                                    </thead>
-                                    <tbody>
-                                        ${searchFiltered.map(t => {
-                                            const dueStatus = calculateDueDateStatus(t.timeline?.[1], t.status);
-                                            const canEdit = canEditTask(t);
-                                            return `<tr class="border-t">
-                                                <td class="p-3"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTask('${g.id}', '${t.id}', 'title', this.value)"` : 'disabled'} class="bg-transparent w-full outline-none ${!canEdit ? 'opacity-50' : ''}"></td>
-                                                <td class="p-3"><select onchange="updateTask('${g.id}', '${t.id}', 'ownerId', this.value)" ${isManager ? '' : 'disabled'} class="bg-transparent text-xs">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}</select></td>
-                                                <td class="p-3"><div class="status-trigger text-xs px-3 py-1 rounded-full" style="background: ${STATUS_TYPES[t.status]?.color};" onclick="${canEdit ? `showStatusDropdown(this, '${g.id}', '${t.id}')` : ''}">${STATUS_TYPES[t.status]?.label}</div></td>
-                                                <td class="p-3"><input type="date" value="${t.timeline?.[1] || ''}" ${canEdit ? `onchange="updateTaskDate('${g.id}', '${t.id}', 1, this.value)"` : 'disabled'} class="bg-transparent text-xs"> <span class="${dueStatus.class} text-xs">${dueStatus.label}</span></td>
-                                                ${isManager ? `<td class="p-3"><button onclick="deleteTask('${g.id}', '${t.id}')" class="text-red-400">🗑️</button></td>` : ''}
-                                            </tr>`;
-                                        }).join('')}
-                                        ${isManager ? `<tr><td colspan="5" class="p-2"><button onclick="addNewTask('${g.id}')" class="w-full py-2 border-dashed border rounded-lg text-slate-400 text-xs">+ Adicionar tarefa</button></td></tr>` : ''}
-                                    </tbody>
-                                </table>
+            container.innerHTML = `
+                <div class="space-y-6">
+                    ${project.groups.map(group => {
+                        const tasks = (group.tasks || []).filter(filteredTasks);
+                        const isCollapsed = isGroupCollapsed(group.id);
+                        return `
+                            <div class="bg-white dark:bg-[#0f0f1a] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                <div class="group-header px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                                    <span onclick="toggleGroup('${group.id}')" class="group-collapse ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                                    <div class="w-1 h-6 rounded-full" style="background: ${group.color}"></div>
+                                    <h3 class="font-bold text-lg flex-1" ${isManager() ? 'contenteditable="true" onblur="renameGroup(\'' + group.id + '\', this.innerText)"' : ''}>${escapeHtml(group.name)}</h3>
+                                    <span class="text-xs text-slate-400">${tasks.length} tarefas</span>
+                                    ${isManager() ? `<button onclick="deleteGroup('${group.id}')" class="text-danger text-xs ml-2">🗑️</button>` : ''}
+                                </div>
+                                <div class="group-content ${isCollapsed ? 'collapsed' : ''} overflow-x-auto">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>Tarefa</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo</th>${isManager() ? '<th></th>' : ''}</tr>
+                                        </thead>
+                                        <tbody>
+                                            ${tasks.map(task => {
+                                                const member = getMember(task.ownerId);
+                                                const due = getDueStatus(task.dueDate, task.status);
+                                                const canEdit = canEditTask(task);
+                                                return `
+                                                    <tr>
+                                                        <td><input type="text" value="${escapeHtml(task.title)}" ${canEdit ? `onchange="updateTask('${group.id}', '${task.id}', 'title', this.value)"` : 'disabled'} class="w-full bg-transparent outline-none ${!canEdit ? 'opacity-60' : ''}"></td>
+                                                        <td>
+                                                            <select onchange="updateTask('${group.id}', '${task.id}', 'ownerId', this.value)" ${isManager() ? '' : 'disabled'} class="bg-transparent text-sm">
+                                                                ${appState.members.map(m => `<option value="${m.id}" ${task.ownerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="status-badge" style="background: ${STATUS_CONFIG[task.status]?.bg || '#f1f5f9'}; color: ${STATUS_CONFIG[task.status]?.color || '#64748b'}" onclick="${canEdit ? `showStatusDropdown(this, '${group.id}', '${task.id}')` : ''}">
+                                                                ${STATUS_CONFIG[task.status]?.label || 'A Fazer'}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="priority-badge" style="background: ${PRIORITY_CONFIG[task.priority]?.color}20; color: ${PRIORITY_CONFIG[task.priority]?.color}">
+                                                                ${PRIORITY_CONFIG[task.priority]?.label || 'Média'}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <input type="date" value="${task.dueDate || ''}" ${canEdit ? `onchange="updateTask('${group.id}', '${task.id}', 'dueDate', this.value)"` : 'disabled'} class="text-sm w-32">
+                                                            <span class="text-xs ml-1 ${due.class}">${due.text}</span>
+                                                        </td>
+                                                        ${isManager() ? `<td><button onclick="deleteTask('${group.id}', '${task.id}')" class="text-danger text-sm">🗑️</button></td>` : ''}
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                            ${isManager() ? `
+                                                <tr>
+                                                    <td colspan="${isManager() ? 6 : 5}" class="p-2">
+                                                        <button onclick="addTask('${group.id}')" class="w-full py-2 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-400 text-sm hover:bg-slate-50 transition">
+                                                            + Adicionar tarefa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ` : ''}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
+                        `;
+                    }).join('')}
+                    ${isManager() && project.groups.length === 0 ? `
+                        <div class="text-center py-12">
+                            <p class="text-slate-500 mb-4">Nenhum grupo criado ainda</p>
+                            <button onclick="addGroup()" class="btn-primary">+ Criar primeiro grupo</button>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    ` : ''}
+                </div>
+            `;
         }
 
-        function renderKanban() {
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            if (!board) return '<div class="p-8">Quadro não encontrado</div>';
-            const allTasks = board.groups.flatMap(g => g.tasks.map(t => ({...t, groupId: g.id})));
-            const filteredTasks = filterTasksByUser(allTasks);
+        function renderKanban(project) {
+            const container = document.getElementById('mainContent');
+            const allTasks = project.groups.flatMap(g => g.tasks.map(t => ({ ...t, groupName: g.name, groupId: g.id })));
+            const filteredTasks = allTasks.filter(t => t.title?.toLowerCase().includes(appState.searchQuery.toLowerCase()));
             
-            return `<div class="flex gap-6 overflow-x-auto pb-6 h-full">
-                ${Object.entries(STATUS_TYPES).map(([key, info]) => `
-                    <div class="w-80 flex-shrink-0">
-                        <div class="flex justify-between items-center mb-4 border-b-4 pb-2" style="border-color: ${info.color}">
-                            <h3 class="font-black text-sm">${info.label}</h3>
-                            <span class="text-xs">${filteredTasks.filter(t => t.status === key).length}</span>
-                        </div>
-                        <div class="space-y-3">
-                            ${filteredTasks.filter(t => t.status === key).map(t => {
-                                const canEdit = canEditTask(t);
-                                const group = board.groups.find(g => g.id === t.groupId);
-                                return `<div class="bg-white dark:bg-[#181829] p-4 rounded-xl shadow-sm border">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h4 class="font-bold text-sm">${escapeHtml(t.title)}</h4>
-                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white" style="background: ${state.team.find(m=>m.id===t.ownerId)?.color || '#ccc'}">${state.team.find(m=>m.id===t.ownerId)?.name.charAt(0) || '?'}</div>
-                                    </div>
-                                    <div class="text-xs text-slate-400 mb-2">${group?.name || ''}</div>
-                                    ${canEdit ? `<div class="status-trigger text-xs px-3 py-1 rounded-full inline-block" style="background: ${info.color};" onclick="showStatusDropdown(this, '${t.groupId}', '${t.id}')">${info.label} ▼</div>` : ''}
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>`;
+            container.innerHTML = `
+                <div class="flex gap-5 overflow-x-auto pb-4 h-full">
+                    ${Object.entries(STATUS_CONFIG).map(([statusKey, status]) => {
+                        const tasks = filteredTasks.filter(t => t.status === statusKey);
+                        return `
+                            <div class="kanban-column flex-shrink-0">
+                                <div class="flex justify-between items-center mb-3 pb-2 border-b-2" style="border-color: ${status.color}">
+                                    <h3 class="font-bold text-sm uppercase">${status.label}</h3>
+                                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700">${tasks.length}</span>
+                                </div>
+                                <div class="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto custom-scroll">
+                                    ${tasks.map(task => {
+                                        const member = getMember(task.ownerId);
+                                        const due = getDueStatus(task.dueDate, task.status);
+                                        const canEdit = canEditTask(task);
+                                        return `
+                                            <div class="kanban-card">
+                                                <div class="flex justify-between items-start mb-2">
+                                                    <h4 class="font-semibold text-sm">${escapeHtml(task.title)}</h4>
+                                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background: ${member?.color || '#94a3b8'}">${member?.name?.charAt(0) || '?'}</div>
+                                                </div>
+                                                <div class="text-xs text-slate-400 mb-2">${escapeHtml(task.groupName)}</div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="priority-badge text-[9px]" style="background: ${PRIORITY_CONFIG[task.priority]?.color}20; color: ${PRIORITY_CONFIG[task.priority]?.color}">
+                                                        ${PRIORITY_CONFIG[task.priority]?.label}
+                                                    </span>
+                                                    <span class="text-[10px] ${due.class}">${due.text}</span>
+                                                </div>
+                                                ${canEdit ? `
+                                                    <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                                        <div class="status-badge text-xs py-1 px-2" style="background: ${status.bg}; color: ${status.color}" onclick="showStatusDropdown(this, '${task.groupId}', '${task.id}')">
+                                                            ${status.label} ▼
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    ${tasks.length === 0 ? '<div class="text-center text-slate-400 text-sm py-8">Nenhuma tarefa</div>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
         function renderDashboard() {
-            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
-            return `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-black mb-6">Dashboard</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl"><h3 class="font-bold">Status das Tarefas</h3><canvas id="statusChart" height="200"></canvas></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl"><h3 class="font-bold">Progresso</h3><canvas id="progressChart" height="200"></canvas></div></div></div>`;
+            if (!isManager()) {
+                document.getElementById('mainContent').innerHTML = '<div class="text-center py-12">Apenas gerentes podem acessar o Dashboard</div>';
+                return;
+            }
+            
+            const totalTasks = appState.projects.reduce((acc, p) => acc + (p.groups?.flatMap(g => g.tasks || []).length || 0), 0);
+            const completedTasks = appState.projects.reduce((acc, p) => acc + (p.groups?.flatMap(g => g.tasks?.filter(t => t.status === 'done').length || 0), 0), 0);
+            const pendingTasks = totalTasks - completedTasks;
+            
+            const statusCounts = { pending: 0, progress: 0, blocked: 0, done: 0 };
+            appState.projects.forEach(p => {
+                p.groups?.forEach(g => {
+                    g.tasks?.forEach(t => { if (statusCounts[t.status] !== undefined) statusCounts[t.status]++; });
+                });
+            });
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="max-w-6xl mx-auto py-6">
+                    <h2 class="text-2xl font-black mb-6">📊 Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border">
+                            <div class="text-3xl font-black text-primary">${totalTasks}</div>
+                            <div class="text-sm text-slate-500">Total de Tarefas</div>
+                        </div>
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border">
+                            <div class="text-3xl font-black text-success">${completedTasks}</div>
+                            <div class="text-sm text-slate-500">Concluídas</div>
+                        </div>
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border">
+                            <div class="text-3xl font-black text-warning">${pendingTasks}</div>
+                            <div class="text-sm text-slate-500">Pendentes</div>
+                        </div>
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border">
+                            <div class="text-3xl font-black text-purple">${appState.projects.length}</div>
+                            <div class="text-sm text-slate-500">Projetos</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-6 border">
+                            <h3 class="font-bold mb-4">Status das Tarefas</h3>
+                            <canvas id="statusChart" height="200"></canvas>
+                        </div>
+                        <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-6 border">
+                            <h3 class="font-bold mb-4">Progresso dos Projetos</h3>
+                            <canvas id="progressChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
+                if (ctx1 && typeof Chart !== 'undefined') {
+                    new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['A Fazer', 'Em Andamento', 'Travado', 'Concluído'],
+                            datasets: [{ data: [statusCounts.pending, statusCounts.progress, statusCounts.blocked, statusCounts.done], backgroundColor: ['#94a3b8', '#0073ea', '#fb275d', '#00ca72'] }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: true }
+                    });
+                }
+                const ctx2 = document.getElementById('progressChart')?.getContext('2d');
+                if (ctx2 && typeof Chart !== 'undefined') {
+                    new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: appState.projects.map(p => p.name.length > 15 ? p.name.slice(0,12)+'...' : p.name),
+                            datasets: [{ label: 'Progresso (%)', data: appState.projects.map(p => getProjectProgress(p)), backgroundColor: '#0073ea', borderRadius: 8 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: true, scales: { y: { max: 100, beginAtZero: true } } }
+                    });
+                }
+            }, 100);
         }
 
-        function renderTeamView() {
-            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
-            return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-black">Equipe</h2><button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full">+ Membro</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${state.team.map(m => `<div class="bg-white dark:bg-[#181829] p-4 rounded-xl border"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div><div><h3 class="font-bold">${escapeHtml(m.name)}</h3><p class="text-xs text-slate-400">@${escapeHtml(m.username)}</p><span class="text-xs px-2 py-0.5 rounded-full ${m.type === 'manager' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}">${m.type === 'manager' ? 'Gerente' : 'Executor'}</span></div>${m.id !== state.currentUser?.id ? `<div class="ml-auto"><button onclick="deleteMember('${m.id}')" class="text-red-500 text-xs">🗑️</button></div>` : ''}</div></div>`).join('')}</div></div>`;
+        function renderTeam() {
+            if (!isManager()) {
+                document.getElementById('mainContent').innerHTML = '<div class="text-center py-12">Apenas gerentes podem gerenciar a equipe</div>';
+                return;
+            }
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="max-w-5xl mx-auto py-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-black">👥 Equipe</h2>
+                        <button onclick="openMemberModal()" class="btn-primary">+ Novo Membro</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${appState.members.map(m => `
+                            <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style="background: ${m.color}">${m.name.charAt(0)}</div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h3 class="font-bold">${escapeHtml(m.name)}</h3>
+                                        <span class="text-xs px-2 py-0.5 rounded-full ${m.type === 'manager' ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'}">${m.type === 'manager' ? 'Gerente' : 'Executor'}</span>
+                                    </div>
+                                    <p class="text-sm text-slate-500">@${escapeHtml(m.username)}</p>
+                                    <p class="text-xs text-slate-400 mt-1">${escapeHtml(m.role || 'Membro')}</p>
+                                </div>
+                                ${m.id !== appState.currentUser?.id ? `
+                                    <button onclick="deleteMember('${m.id}')" class="text-danger text-sm">🗑️</button>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
 
         function renderReports() {
-            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
-            let totalTasks = 0, completedTasks = 0;
-            state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { totalTasks++; if (t.status === 'Concluido') completedTasks++; }); }); });
-            return `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-black mb-6">Relatórios</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-blue-500">${totalTasks}</div><div class="text-sm">Total de Tarefas</div></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-green-500">${completedTasks}</div><div class="text-sm">Concluídas</div></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-orange-500">${totalTasks - completedTasks}</div><div class="text-sm">Pendentes</div></div></div></div>`;
-        }
-
-        function initDashboardCharts() {
-            const statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
-            state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; }); }); });
-            const canvas1 = document.getElementById('statusChart');
-            if (canvas1 && typeof Chart !== 'undefined') new Chart(canvas1, { type: 'pie', data: { labels: Object.values(STATUS_TYPES).map(s => s.label), datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.values(STATUS_TYPES).map(s => s.color) }] } });
-            const canvas2 = document.getElementById('progressChart');
-            if (canvas2 && typeof Chart !== 'undefined') new Chart(canvas2, { type: 'bar', data: { labels: state.boards.map(b => b.name), datasets: [{ label: 'Progresso (%)', data: state.boards.map(b => calculateProjectProgress(b)), backgroundColor: '#0073ea' }] } });
-        }
-
-        async function updateTask(gId, tId, field, val) {
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            const group = board?.groups.find(g => g.id == gId);
-            const task = group?.tasks.find(t => t.id == tId);
-            if (task) { task[field] = val; saveToLocalStorage(); render(); showToast('Salvo'); }
-        }
-
-        async function updateTaskDate(gId, tId, idx, val) {
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            const group = board?.groups.find(g => g.id == gId);
-            const task = group?.tasks.find(t => t.id == tId);
-            if (task) { if (!task.timeline) task.timeline = ['', '']; task.timeline[idx] = val; saveToLocalStorage(); render(); showToast('Data atualizada'); }
-        }
-
-        async function addNewTask(groupId) {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            const group = board?.groups.find(g => g.id == groupId);
-            if (group) {
-                const today = new Date().toISOString().split('T')[0];
-                const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
-                group.tasks.push({ id: Date.now() + Math.random(), title: 'Nova tarefa', ownerId: state.currentUser.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today, nextWeek] });
-                saveToLocalStorage();
-                render();
+            if (!isManager()) {
+                document.getElementById('mainContent').innerHTML = '<div class="text-center py-12">Apenas gerentes podem acessar relatórios</div>';
+                return;
             }
+            
+            const memberStats = appState.members.map(m => {
+                let total = 0, completed = 0;
+                appState.projects.forEach(p => {
+                    p.groups?.forEach(g => {
+                        g.tasks?.forEach(t => {
+                            if (t.ownerId === m.id) {
+                                total++;
+                                if (t.status === 'done') completed++;
+                            }
+                        });
+                    });
+                });
+                return { ...m, total, completed, rate: total > 0 ? Math.round((completed/total)*100) : 0 };
+            }).sort((a,b) => b.total - a.total);
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="max-w-6xl mx-auto py-6">
+                    <h2 class="text-2xl font-black mb-6">📈 Relatórios de Desempenho</h2>
+                    <div class="space-y-4">
+                        ${memberStats.map(m => `
+                            <div class="bg-white dark:bg-[#0f0f1a] rounded-xl p-5 border">
+                                <div class="flex items-center gap-4 mb-4">
+                                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div>
+                                    <div>
+                                        <h3 class="font-bold text-lg">${escapeHtml(m.name)}</h3>
+                                        <p class="text-sm text-slate-500">${escapeHtml(m.role || 'Membro')} • ${m.type === 'manager' ? 'Gerente' : 'Executor'}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-4 mb-3">
+                                    <div class="text-center"><div class="text-2xl font-bold text-primary">${m.total}</div><div class="text-xs text-slate-500">Total</div></div>
+                                    <div class="text-center"><div class="text-2xl font-bold text-success">${m.completed}</div><div class="text-xs text-slate-500">Concluídas</div></div>
+                                    <div class="text-center"><div class="text-2xl font-bold ${m.rate >= 70 ? 'text-success' : m.rate >= 40 ? 'text-warning' : 'text-danger'}">${m.rate}%</div><div class="text-xs text-slate-500">Eficiência</div></div>
+                                </div>
+                                <div class="progress-bar-custom"><div class="progress-fill-custom" style="width: ${m.rate}%"></div></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
 
-        async function deleteTask(gId, tId) {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            const group = board?.groups.find(g => g.id == gId);
-            if (group) { group.tasks = group.tasks.filter(t => t.id != tId); saveToLocalStorage(); render(); showToast('Tarefa removida'); }
+        // ==================== AÇÕES ====================
+        function selectProject(id) {
+            appState.currentProjectId = id;
+            appState.currentView = 'project';
+            render();
         }
 
-        async function addNewGroup() {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            if (board) {
-                board.groups.push({ id: Date.now() + Math.random(), name: 'Novo Grupo', color: '#0073ea', tasks: [] });
-                saveToLocalStorage();
-                render();
-            }
+        function changeView(view) {
+            appState.currentView = view;
+            render();
         }
 
-        async function deleteGroup(groupId) {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            if (board) { board.groups = board.groups.filter(g => g.id != groupId); saveToLocalStorage(); render(); showToast('Grupo removido'); }
+        function setBoardView(view) {
+            appState.boardView = view;
+            render();
         }
 
-        async function renameGroup(gId, newVal) {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            const group = board?.groups.find(g => g.id == gId);
-            if (group) { group.name = newVal; saveToLocalStorage(); render(); }
-        }
-
-        async function renameBoard(newVal) {
-            if (!isCurrentUserManager()) return;
-            const board = state.boards.find(b => b.id === state.activeBoardId);
-            if (board) { board.name = newVal; saveToLocalStorage(); render(); }
-        }
-
-        async function deleteActiveBoard() {
-            if (!isCurrentUserManager()) return;
-            if (confirm('Excluir este projeto?')) {
-                state.boards = state.boards.filter(b => b.id !== state.activeBoardId);
-                state.activeView = 'home';
-                saveToLocalStorage();
-                render();
-            }
-        }
-
-        async function createNewBoard() {
-            if (!isCurrentUserManager()) return;
+        function createProject() {
+            if (!isManager()) { showToast('Apenas gerentes podem criar projetos', true); return; }
             const name = prompt('Nome do projeto:');
             if (name) {
-                state.boards.push({ id: Date.now(), name, managerId: state.currentUser.id, groups: [] });
-                saveToLocalStorage();
-                render();
+                const newProject = { id: 'p' + Date.now(), name, managerId: appState.currentUser.id, groups: [] };
+                appState.projects.push(newProject);
+                saveToStorage();
+                selectProject(newProject.id);
+                showToast(`Projeto "${name}" criado!`);
             }
         }
 
-        function openAddMemberModal() {
-            if (!isCurrentUserManager()) return;
-            document.getElementById('memberId').value = '';
-            document.getElementById('memberName').value = '';
-            document.getElementById('memberUsername').value = '';
-            document.getElementById('memberPassword').value = '';
-            document.getElementById('memberType').value = 'executor';
+        function renameProject(newName) {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            if (project) { project.name = newName; saveToStorage(); render(); }
+        }
+
+        function deleteCurrentProject() {
+            if (!isManager()) return;
+            if (confirm('Excluir este projeto permanentemente?')) {
+                appState.projects = appState.projects.filter(p => p.id !== appState.currentProjectId);
+                appState.currentView = 'home';
+                appState.currentProjectId = null;
+                saveToStorage();
+                render();
+                showToast('Projeto excluído');
+            }
+        }
+
+        function addGroup() {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            if (project) {
+                const colors = ['#0073ea', '#a25ddc', '#00ca72', '#ffad00', '#fb275d'];
+                const newGroup = { id: 'g' + Date.now(), name: 'Novo Grupo', color: colors[Math.floor(Math.random() * colors.length)], tasks: [] };
+                project.groups.push(newGroup);
+                saveToStorage();
+                render();
+                showToast('Grupo criado');
+            }
+        }
+
+        function renameGroup(groupId, newName) {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            const group = project?.groups.find(g => g.id === groupId);
+            if (group) { group.name = newName; saveToStorage(); render(); }
+        }
+
+        function deleteGroup(groupId) {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            if (project) {
+                project.groups = project.groups.filter(g => g.id !== groupId);
+                saveToStorage();
+                render();
+                showToast('Grupo removido');
+            }
+        }
+
+        function addTask(groupId) {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            const group = project?.groups.find(g => g.id === groupId);
+            if (group) {
+                const today = new Date().toISOString().split('T')[0];
+                const nextWeek = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
+                group.tasks.push({
+                    id: 't' + Date.now(),
+                    title: 'Nova tarefa',
+                    ownerId: appState.currentUser.id,
+                    status: 'pending',
+                    priority: 'medium',
+                    dueDate: nextWeek
+                });
+                saveToStorage();
+                render();
+                showToast('Tarefa adicionada');
+            }
+        }
+
+        function updateTask(groupId, taskId, field, value) {
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            const group = project?.groups.find(g => g.id === groupId);
+            const task = group?.tasks.find(t => t.id === taskId);
+            if (task) {
+                if (!canEditTask(task) && field !== 'status') return;
+                task[field] = value;
+                saveToStorage();
+                render();
+                showToast('Atualizado');
+            }
+        }
+
+        function deleteTask(groupId, taskId) {
+            if (!isManager()) return;
+            const project = appState.projects.find(p => p.id === appState.currentProjectId);
+            const group = project?.groups.find(g => g.id === groupId);
+            if (group) {
+                group.tasks = group.tasks.filter(t => t.id !== taskId);
+                saveToStorage();
+                render();
+                showToast('Tarefa removida');
+            }
+        }
+
+        // ==================== DROPDOWN STATUS ====================
+        let activeDropdown = null;
+        function showStatusDropdown(trigger, groupId, taskId) {
+            if (activeDropdown) activeDropdown.remove();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown-menu';
+            const rect = trigger.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            dropdown.style.left = (rect.left + window.scrollX) + 'px';
+            
+            Object.entries(STATUS_CONFIG).forEach(([key, config]) => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${config.color}; margin-right: 10px;"></span>${config.label}`;
+                item.onclick = () => { updateTask(groupId, taskId, 'status', key); dropdown.remove(); activeDropdown = null; };
+                dropdown.appendChild(item);
+            });
+            
+            document.getElementById('dropdownContainer').appendChild(dropdown);
+            activeDropdown = dropdown;
+            setTimeout(() => {
+                document.addEventListener('click', function close(e) { if (!dropdown.contains(e.target) && e.target !== trigger) { dropdown.remove(); activeDropdown = null; document.removeEventListener('click', close); } });
+            }, 100);
+        }
+
+        // ==================== MEMBROS ====================
+        function openMemberModal(editMember = null) {
+            if (!isManager()) return;
             document.getElementById('memberModal').style.display = 'flex';
+            if (editMember) {
+                document.getElementById('memberModalTitle').textContent = '✏️ Editar Membro';
+                document.getElementById('memberId').value = editMember.id;
+                document.getElementById('memberName').value = editMember.name;
+                document.getElementById('memberUsername').value = editMember.username;
+                document.getElementById('memberPassword').value = '';
+                document.getElementById('memberRole').value = editMember.role || '';
+                document.getElementById('memberType').value = editMember.type;
+            } else {
+                document.getElementById('memberModalTitle').textContent = '👥 Adicionar Membro';
+                document.getElementById('memberId').value = '';
+                document.getElementById('memberName').value = '';
+                document.getElementById('memberUsername').value = '';
+                document.getElementById('memberPassword').value = '';
+                document.getElementById('memberRole').value = '';
+                document.getElementById('memberType').value = 'executor';
+            }
         }
 
         function closeMemberModal() { document.getElementById('memberModal').style.display = 'none'; }
@@ -663,67 +900,197 @@
             const name = document.getElementById('memberName').value;
             const username = document.getElementById('memberUsername').value;
             const password = document.getElementById('memberPassword').value;
+            const role = document.getElementById('memberRole').value;
             const type = document.getElementById('memberType').value;
-            if (!name || !username) { alert('Preencha nome e usuário'); return; }
+            
+            if (!name || !username) { showToast('Preencha nome e usuário', true); return; }
+            if (appState.members.some(m => m.username === username && m.id !== id)) { showToast('Usuário já existe', true); return; }
+            
+            const colors = ['#0073ea', '#00ca72', '#fb275d', '#ffad00', '#a25ddc', '#10b981', '#f97316', '#8b5cf6'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
             if (id) {
-                const member = state.team.find(m => m.id === id);
-                if (member) { member.name = name; member.username = username; if (password) member.password = btoa(password); member.type = type; }
+                const member = appState.members.find(m => m.id === id);
+                if (member) {
+                    member.name = name;
+                    member.username = username;
+                    if (password) member.password = btoa(password);
+                    member.role = role;
+                    member.type = type;
+                }
             } else {
-                state.team.push({ id: Date.now() + Math.random(), username, name, password: btoa(password || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role: 'Membro', type, firstAccess: false });
+                appState.members.push({
+                    id: 'm' + Date.now(),
+                    name, username,
+                    password: btoa(password || '123456'),
+                    role: role || 'Membro',
+                    type,
+                    color: randomColor,
+                    avatar: name.charAt(0)
+                });
             }
-            saveToLocalStorage();
+            
+            saveToStorage();
             closeMemberModal();
-            renderUserList();
             render();
             showToast('Membro salvo');
         }
 
         function deleteMember(id) {
-            if (!isCurrentUserManager()) return;
-            if (state.team.length <= 1) { alert('Equipe deve ter pelo menos um membro'); return; }
+            if (!isManager()) return;
+            if (appState.members.length <= 1) { showToast('Equipe deve ter pelo menos um membro', true); return; }
             if (confirm('Remover este membro?')) {
-                state.team = state.team.filter(m => m.id !== id);
-                saveToLocalStorage();
-                renderUserList();
+                appState.members = appState.members.filter(m => m.id !== id);
+                saveToStorage();
                 render();
+                showToast('Membro removido');
             }
         }
 
-        let activeDropdown = null;
-        function showStatusDropdown(trigger, groupId, taskId) {
-            if (activeDropdown) activeDropdown.remove();
-            const dropdown = document.createElement('div');
-            dropdown.className = 'dropdown-portal';
-            const rect = trigger.getBoundingClientRect();
-            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-            dropdown.style.left = (rect.left + window.scrollX) + 'px';
-            Object.entries(STATUS_TYPES).forEach(([key, info]) => {
-                const btn = document.createElement('button');
-                btn.textContent = info.label;
-                btn.style.borderLeft = `4px solid ${info.color}`;
-                btn.style.padding = '8px 12px';
-                btn.style.display = 'block';
-                btn.style.width = '100%';
-                btn.style.textAlign = 'left';
-                btn.style.fontSize = '12px';
-                btn.onclick = () => { updateTask(groupId, taskId, 'status', key); dropdown.remove(); activeDropdown = null; };
-                dropdown.appendChild(btn);
+        // ==================== LOGIN ====================
+        function renderLoginList() {
+            const container = document.getElementById('userList');
+            container.innerHTML = appState.members.map(m => `
+                <div onclick="selectUser('${m.id}')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition" id="user-${m.id}">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div>
+                    <div><div class="font-semibold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div></div>
+                </div>
+            `).join('');
+        }
+
+        let selectedUserId = null;
+        function selectUser(id) {
+            selectedUserId = id;
+            document.querySelectorAll('[id^="user-"]').forEach(el => el.classList.remove('bg-primary/10'));
+            document.getElementById(`user-${id}`)?.classList.add('bg-primary/10');
+            document.getElementById('loginPassword').disabled = false;
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginPassword').focus();
+        }
+
+        function handleLogin() {
+            const password = document.getElementById('loginPassword').value;
+            const user = appState.members.find(m => m.id === selectedUserId);
+            if (!user) { showToast('Selecione um usuário', true); return; }
+            if (btoa(password) === user.password) {
+                appState.currentUser = user;
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('userAvatar').style.background = user.color;
+                document.getElementById('userAvatar').textContent = user.name.charAt(0);
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userBadge').textContent = user.type === 'manager' ? 'Gerente' : 'Executor';
+                document.getElementById('newProjectBtn').style.display = user.type === 'manager' ? 'block' : 'none';
+                document.getElementById('addMemberSidebarBtn').style.display = user.type === 'manager' ? 'block' : 'none';
+                render();
+                showToast(`Bem-vindo, ${user.name}!`);
+            } else { showToast('Senha incorreta', true); }
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            appState.currentProjectId = null;
+            appState.currentView = 'home';
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginPassword').disabled = true;
+            document.getElementById('loginBtn').disabled = true;
+            selectedUserId = null;
+            renderLoginList();
+        }
+
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleDarkMode() {
+            appState.darkMode = !appState.darkMode;
+            if (appState.darkMode) document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+            saveToStorage();
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('mobileOverlay').classList.toggle('open');
+        }
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('mobileOverlay').classList.remove('open');
+        }
+
+        // ==================== EXPORT/IMPORT ====================
+        function exportData() {
+            const data = {
+                projects: appState.projects,
+                members: appState.members,
+                version: '1.0'
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = url;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Dados exportados!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.projects) appState.projects = data.projects;
+                    if (data.members) appState.members = data.members;
+                    saveToStorage();
+                    renderLoginList();
+                    if (appState.currentUser) render();
+                    showToast('Dados importados!');
+                } catch(err) { showToast('Erro ao importar', true); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ==================== RESIZE SIDEBAR ====================
+        function initResizable() {
+            const sidebar = document.getElementById('sidebar');
+            const handle = document.getElementById('resizeHandle');
+            if (!sidebar || !handle) return;
+            let startX, startWidth;
+            handle.addEventListener('mousedown', (e) => {
+                startX = e.clientX;
+                startWidth = parseInt(getComputedStyle(sidebar).width);
+                const onMouseMove = (e) => {
+                    const newWidth = startWidth + (e.clientX - startX);
+                    if (newWidth >= 200 && newWidth <= 400) sidebar.style.width = newWidth + 'px';
+                };
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
             });
-            document.getElementById('dropdownPortal').appendChild(dropdown);
-            activeDropdown = dropdown;
-            setTimeout(() => {
-                document.addEventListener('click', function close(e) { if (!dropdown.contains(e.target) && e.target !== trigger) { dropdown.remove(); activeDropdown = null; document.removeEventListener('click', close); } });
-            }, 100);
         }
 
-        document.addEventListener('click', (e) => { if (!e.target.classList?.contains('status-trigger') && activeDropdown) { activeDropdown.remove(); activeDropdown = null; } });
+        // ==================== INICIALIZAÇÃO ====================
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('userMenu');
+            const avatar = document.querySelector('.flex.items-center.gap-3.bg-slate-100');
+            if (avatar && !avatar.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden');
+            if (activeDropdown && !activeDropdown.contains(e.target) && !e.target.classList?.contains('status-badge')) {
+                activeDropdown.remove();
+                activeDropdown = null;
+            }
+        });
 
-        loadFromLocalStorage();
-        if (!state.team.length) {
-            state.team = [{ id: 'admin1', username: 'admin', name: 'Administrador', password: btoa('admin123'), color: '#0073ea', role: 'Gerente', type: 'manager', firstAccess: false }];
-            state.boards = [{ id: 1, name: 'Meu Projeto', managerId: 'admin1', groups: [] }];
-        }
-        renderUserList();
+        loadFromStorage();
+        renderLoginList();
+        initResizable();
         document.getElementById('loginModal').style.display = 'flex';
     </script>
 </body>
