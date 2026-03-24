@@ -4,387 +4,227 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="theme-color" content="#0073ea">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Figtree', 'sans-serif'] },
+                    colors: {
+                        monday: {
+                            blue: '#0073ea',
+                            green: '#00ca72',
+                            red: '#fb275d',
+                            orange: '#ffad00',
+                            purple: '#a25ddc',
+                            gray: '#c4c4c4',
+                            bg: '#f5f6f8',
+                            dark: '#111122'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Custom Scroll */
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
         .dark .custom-scroll::-webkit-scrollbar-track { background: #1e1e2e; }
         .dark .custom-scroll::-webkit-scrollbar-thumb { background: #444; }
         
-        /* Resizable Sidebar */
-        .resizable-container {
-            display: flex;
-            height: 100%;
-            position: relative;
-        }
+        .resizable-container { display: flex; height: 100%; position: relative; }
+        .sidebar-resizable { position: relative; min-width: 180px; max-width: 400px; width: 240px; transition: none; }
+        .resize-handle { position: absolute; right: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; background: transparent; z-index: 100; }
+        .resize-handle:hover, .resize-handle:active { background: #0073ea; }
         
-        .sidebar-resizable {
-            position: relative;
-            min-width: 180px;
-            max-width: 400px;
-            width: 240px;
-            transition: none;
-            background: white;
-            height: 100%;
-            overflow-y: auto;
-        }
-        .dark .sidebar-resizable { background: #181829; }
-        
-        /* Desktop: sidebar sempre visível */
-        @media (min-width: 769px) {
-            .sidebar-resizable {
-                position: relative !important;
-                left: 0 !important;
-                display: flex !important;
-            }
-            .menu-toggle, .mobile-overlay, .bottom-nav {
-                display: none !important;
-            }
-        }
-        
-        /* Mobile: sidebar colapsável */
-        @media (max-width: 768px) {
-            .sidebar-resizable {
-                position: fixed;
-                left: -280px;
-                top: 0;
-                height: 100vh;
-                z-index: 1000;
-                transition: left 0.3s ease;
-                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-            }
-            .sidebar-resizable.open { left: 0; }
-            .mobile-overlay {
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 999;
-                display: none;
-            }
-            .mobile-overlay.open { display: block; }
-            .menu-toggle { display: block; cursor: pointer; }
-            .desktop-nav { display: none; }
-            .bottom-nav { display: flex; }
-            .process-card { padding: 16px; }
-            .resize-handle { display: none; }
-        }
-        
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #e2e8f0;
-            z-index: 100;
-            padding: 8px 16px;
-            justify-content: space-around;
-            align-items: center;
-            display: none;
-        }
-        .dark .bottom-nav { background: #181829; border-color: #2d2d3f; }
-        .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 6px 12px;
-            border-radius: 30px;
-            min-width: 60px;
-            color: #64748b;
-        }
-        .dark .bottom-nav-item { color: #94a3b8; }
-        .bottom-nav-item.active { background: #e6f0ff; color: #0073ea; }
-        
-        /* Cards */
-        .process-card {
-            background: white;
-            border-radius: 20px;
-            padding: 18px;
-            border: 1px solid #e2e8f0;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .dark .process-card { background: #181829; border-color: #2d2d3f; }
-        .processos-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-        }
-        @media (min-width: 640px) { .processos-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .processos-grid { grid-template-columns: repeat(3, 1fr); } }
+        .status-trigger { cursor: pointer; transition: filter 0.2s; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
+        .status-trigger:hover { filter: brightness(0.9); }
         
         .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
         .progress-fill { height: 100%; background: #0073ea; border-radius: 3px; transition: width 0.3s ease; }
         
-        /* Login Modal */
-        .login-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999999;
-            backdrop-filter: blur(5px);
-            padding: 16px;
-        }
-        .login-box {
-            background: white;
-            border-radius: 32px;
-            padding: 32px 24px;
-            width: 100%;
-            max-width: 400px;
-        }
+        .login-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999999; backdrop-filter: blur(5px); }
+        .login-box { background: white; border-radius: 24px; padding: 40px; width: 450px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
         .dark .login-box { background: #181829; border: 1px solid #2d2d3f; }
         
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            border-radius: 16px;
-        }
-        .user-item.selected { border-color: #0073ea; background: #e6f0ff; }
-        
-        .current-user {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px 6px 6px;
-            background: #f1f5f9;
-            border-radius: 40px;
-            cursor: pointer;
-        }
-        .dark .current-user { background: #1e1e2e; }
-        
-        .btn-primary { background: #0073ea; color: white; padding: 12px 24px; border-radius: 40px; font-weight: 600; text-align: center; }
-        .btn-outline { background: transparent; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 40px; font-weight: 600; }
-        .dark .btn-outline { border-color: #2d2d3f; color: #e2e8f0; }
-        
-        .resize-handle {
-            position: absolute;
-            right: -3px;
-            top: 0;
-            width: 6px;
-            height: 100%;
-            cursor: col-resize;
-            background: transparent;
-            z-index: 100;
-        }
-        .resize-handle:hover { background: #0073ea; }
-        
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            padding: 16px;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 28px;
-            width: 100%;
-            max-width: 500px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 24px;
-        }
-        .dark .modal-content { background: #181829; border: 1px solid #2d2d3f; }
-        
-        .member-sidebar {
-            position: fixed;
-            right: -500px;
-            top: 0;
-            width: 100%;
-            max-width: 480px;
-            height: 100vh;
-            background: white;
-            z-index: 99999;
-            transition: right 0.3s;
-            overflow-y: auto;
-        }
-        .dark .member-sidebar { background: #181829; border-left: 1px solid #2d2d3f; }
-        .member-sidebar.open { right: 0; }
-        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99998; display: none; }
-        .sidebar-overlay.open { display: block; }
-        
-        .status-tag-overdue { background: #fb275d20; color: #fb275d; border-left: 3px solid #fb275d; }
-        .status-tag-today { background: #ffad0020; color: #ffad00; border-left: 3px solid #ffad00; }
-        .status-tag-week { background: #0073ea20; color: #0073ea; border-left: 3px solid #0073ea; }
-        
-        .gantt-container { background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: auto; max-height: 600px; }
-        .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
-        .table-container { overflow-x: auto; border-radius: 12px; }
-        table { min-width: 800px; border-collapse: collapse; }
-        
-        .group-collapse-btn { cursor: pointer; font-size: 16px; margin-right: 8px; display: inline-block; transition: transform 0.2s; }
-        .group-collapse-btn.collapsed { transform: rotate(-90deg); }
-        .group-content { transition: all 0.3s ease; }
-        .group-content.collapsed { display: none; }
-        
-        .move-task-btn { opacity: 0; transition: opacity 0.2s; background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 6px; }
-        tr:hover .move-task-btn { opacity: 1; }
-        
-        .status-trigger { cursor: pointer; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
-        .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px; min-width: 180px; }
+        .dropdown-portal { position: fixed; z-index: 9999999; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); padding: 4px; min-width: 180px; }
         .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
         
-        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
-        .info-item { background: #f8fafc; padding: 12px; border-radius: 12px; }
-        .dark .info-item { background: #1e1e2e; }
+        .group-collapse-btn { cursor: pointer; display: inline-block; transition: transform 0.2s; margin-right: 8px; }
+        .group-collapse-btn.collapsed { transform: rotate(-90deg); }
+        .group-content.collapsed { display: none; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        @media (max-width: 768px) {
+            .sidebar-resizable { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; background: white; }
+            .dark .sidebar-resizable { background: #181829; }
+            .sidebar-resizable.open { left: 0; }
+            .mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+            .mobile-overlay.open { display: block; }
+            .menu-toggle { display: block; cursor: pointer; }
+        }
+        @media (min-width: 769px) { .menu-toggle, .mobile-overlay { display: none; } }
+        
+        .table-container { overflow-x: auto; border-radius: 12px; }
+        table { min-width: 1300px; border-collapse: collapse; }
+        th, td { padding: 12px 8px; vertical-align: middle; }
+        input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; font-weight: bold; width: 85px; }
+        .board-name { word-break: break-word; white-space: normal; line-height: 1.3; }
     </style>
 </head>
-<body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
+<body class="bg-monday-bg text-slate-800 dark:bg-[#0b0b15] dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
 
-    <!-- LOGIN MODAL -->
     <div id="loginModal" class="login-modal">
         <div class="login-box">
             <h2 class="text-2xl font-black mb-2">🔐 Workspace Pro</h2>
-            <p class="text-slate-500 dark:text-slate-400 mb-6">Gerenciamento de Projetos</p>
-            <div id="userList" class="max-h-64 overflow-y-auto mb-4 space-y-2"></div>
-            <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl mb-4 bg-transparent" disabled>
-            <button onclick="handleLogin()" id="loginButton" class="w-full btn-primary" disabled>Entrar</button>
-            <p class="text-xs text-center text-slate-400 mt-4">Usuários: tiagoabreu (admin) • Senha: 123456</p>
+            <p class="text-sm text-slate-500 mb-6">Selecione seu usuário e digite a senha</p>
+            <div id="userList" class="max-h-80 overflow-y-auto mb-4 border rounded-xl"></div>
+            <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full px-4 py-3 border rounded-xl mb-4 outline-none focus:border-monday-blue" disabled>
+            <button onclick="handleLogin()" id="loginButton" class="w-full py-3 bg-monday-blue text-white rounded-xl font-bold" disabled>Entrar</button>
         </div>
     </div>
 
-    <!-- HEADER -->
-    <header class="bg-white dark:bg-[#181829] border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
-        <div class="flex items-center justify-between px-4 py-3">
-            <div class="flex items-center gap-3">
-                <button class="menu-toggle p-2 rounded-full hover:bg-slate-100 text-2xl" onclick="toggleMobileSidebar()">☰</button>
-                <div class="flex items-center gap-2 cursor-pointer" onclick="changeMainView('home')">
-                    <div class="w-8 h-8 bg-gradient-to-br from-monday-blue to-monday-purple rounded-xl flex items-center justify-center text-white font-bold shadow">W</div>
-                    <span class="font-black text-lg tracking-tight">Workspace<span class="text-monday-blue">Pro</span></span>
-                </div>
+    <header class="h-14 bg-white dark:bg-[#181829] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-50">
+        <div class="flex items-center gap-8">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="changeMainView('home')">
+                <div class="w-8 h-8 bg-gradient-to-br from-monday-blue to-monday-purple rounded-lg flex items-center justify-center text-white font-bold">W</div>
+                <span class="font-black text-lg">Workspace<span class="text-monday-blue">Pro</span></span>
             </div>
-            <div class="flex items-center gap-2">
-                <div id="currentUserIndicator" class="current-user" onclick="toggleUserMenu()">
-                    <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">?</div>
-                    <span id="currentUserName" class="text-sm font-bold hidden sm:inline">Não logado</span>
-                </div>
-                <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 rounded-full text-xl">🌓</button>
-                <div class="flex gap-2">
-                    <button onclick="saveDatabaseFile()" class="text-[10px] font-bold p-2 bg-green-500 text-white rounded-md">💾 Salvar</button>
-                    <button onclick="openDatabaseFile()" class="text-[10px] font-bold p-2 border rounded-md">📂 Abrir</button>
-                </div>
-            </div>
+            <nav class="flex items-center gap-1">
+                <button onclick="changeMainView('home')" id="btn-home" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">🏠 Início</button>
+                <button onclick="changeMainView('dashboard')" id="btn-dash" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">📊 Dashboard</button>
+                <button onclick="changeMainView('team')" id="btn-team" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">👥 Equipe</button>
+                <button onclick="changeMainView('reports')" id="btn-reports" class="px-4 py-2 rounded-md text-sm font-semibold hover:bg-slate-100">📈 Relatórios</button>
+            </nav>
+            <button class="menu-toggle text-2xl p-2 hover:bg-slate-100 rounded-full" onclick="toggleMobileSidebar()">☰</button>
         </div>
-        <nav class="desktop-nav flex items-center gap-1 px-4 pb-2">
-            <button onclick="changeMainView('home')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100">🏠 Início</button>
-            <button onclick="changeMainView('dashboard')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100">📊 Dashboard</button>
-            <button onclick="changeMainView('team')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100">👥 Equipe</button>
-            <button onclick="changeMainView('reports')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100">📈 Relatórios</button>
-        </nav>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-full cursor-pointer" onclick="toggleUserMenu()">
+                <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white">?</div>
+                <span id="currentUserName" class="text-sm font-bold">Não logado</span>
+                <span id="currentUserRole" class="text-xs px-2 py-0.5 rounded-full bg-slate-200">-</span>
+            </div>
+            <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 rounded-full">🌓</button>
+            <button onclick="exportJSON()" class="text-xs px-2 py-1 border rounded-md">📤 Exportar</button>
+            <label class="text-xs px-2 py-1 bg-monday-blue text-white rounded-md cursor-pointer">📥 Importar <input type="file" class="hidden" accept=".json" onchange="importJSON(event)"></label>
+        </div>
     </header>
 
-    <!-- BOTTOM NAV (mobile) -->
-    <div class="bottom-nav">
-        <button onclick="changeMainView('home')" class="bottom-nav-item" id="bottom-home"><span>🏠</span><span>Início</span></button>
-        <button onclick="changeMainView('dashboard')" class="bottom-nav-item" id="bottom-dash"><span>📊</span><span>Dashboard</span></button>
-        <button onclick="changeMainView('team')" class="bottom-nav-item" id="bottom-team"><span>👥</span><span>Equipe</span></button>
-        <button onclick="changeMainView('reports')" class="bottom-nav-item" id="bottom-reports"><span>📈</span><span>Relatórios</span></button>
-        <button onclick="createNewBoard()" class="bottom-nav-item bg-monday-blue text-white rounded-full w-12 h-12 flex items-center justify-center -mt-6 shadow-lg"><span class="text-2xl">+</span></button>
+    <div id="userMenu" class="hidden absolute right-24 top-14 bg-white dark:bg-[#181829] border rounded-lg shadow-xl z-50 w-40">
+        <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">🚪 Sair</button>
     </div>
 
     <div id="mobileOverlay" class="mobile-overlay" onclick="closeMobileSidebar()"></div>
+    <div id="dropdownPortal"></div>
 
-    <!-- SIDEBAR -->
     <div class="resizable-container flex-1 overflow-hidden">
-        <aside id="sidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 flex flex-col p-4 overflow-y-auto">
-            <div class="flex justify-between mb-6">
+        <aside id="sidebar" class="sidebar-resizable bg-white dark:bg-[#181829] border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 overflow-y-auto custom-scroll">
+            <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xs font-bold text-slate-400 uppercase">Quadros</h3>
-                <button onclick="createNewBoard()" class="text-monday-blue text-xl" id="newBoardBtn">+</button>
+                <button onclick="createNewBoard()" class="text-monday-blue text-xl hover:scale-110" id="newBoardBtn">+</button>
             </div>
-            <div id="board-list" class="space-y-2 mb-8"></div>
+            <div id="board-list" class="space-y-2 text-sm font-medium mb-8"></div>
             <div class="mt-auto border-t pt-4">
-                <div class="flex justify-between mb-4 text-xs text-slate-400 uppercase font-bold">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase mb-4">
                     <span>Membros</span>
-                    <button onclick="openAddMemberModal()" class="text-monday-blue" id="addMemberBtn">+</button>
+                    <button onclick="openAddMemberModal()" class="text-monday-blue hover:scale-110" id="addMemberBtn">+</button>
                 </div>
                 <div id="sidebar-team" class="flex flex-wrap gap-1"></div>
             </div>
             <div id="resizeHandle" class="resize-handle"></div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto pb-20 md:pb-6 custom-scroll" id="view-container"></main>
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <div id="board-header" class="hidden bg-white dark:bg-[#181829] border-b px-8 py-4">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <h2 id="board-title" class="text-2xl font-bold outline-none board-name" contenteditable="false" onblur="renameBoard(this.innerText)">Carregando...</h2>
+                            <button onclick="deleteActiveBoard()" class="text-xs text-red-500 font-bold" id="deleteBoardBtn">Excluir</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <button onclick="changeView('table')" class="view-btn px-4 py-1.5 rounded-md text-xs font-bold" id="view-table">📋 Tabela</button>
+                        <button onclick="changeView('kanban')" class="view-btn px-4 py-1.5 rounded-md text-xs font-bold" id="view-kanban">🧱 Kanban</button>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="addNewGroup()" class="bg-monday-blue text-white px-4 py-1.5 rounded-md text-xs font-bold">Novo Grupo</button>
+                    <input type="text" oninput="filterTasks(this.value)" placeholder="🔍 Pesquisar..." class="bg-slate-100 dark:bg-slate-800 rounded-md px-4 py-1.5 text-xs w-64 outline-none">
+                </div>
+            </div>
+            <div id="view-container" class="flex-1 overflow-y-auto p-8 custom-scroll"></div>
+        </main>
     </div>
 
-    <!-- MODAIS -->
-    <div id="memberModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-[9999]"></div>
+
+    <div id="memberModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[999999]">
+        <div class="bg-white dark:bg-[#181829] rounded-2xl p-8 w-[500px] max-w-[90%] max-h-[90vh] overflow-y-auto">
+            <h2 id="memberModalTitle" class="text-2xl font-black mb-4">Adicionar Membro</h2>
             <input type="hidden" id="memberId">
-            <input type="text" id="memberName" placeholder="Nome *" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="text" id="memberUsername" placeholder="Usuário *" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <select id="memberType" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
+            <input type="text" id="memberName" placeholder="Nome" class="w-full px-4 py-3 border rounded-xl mb-3">
+            <input type="text" id="memberUsername" placeholder="Usuário" class="w-full px-4 py-3 border rounded-xl mb-3">
+            <input type="password" id="memberPassword" placeholder="Senha" class="w-full px-4 py-3 border rounded-xl mb-3">
+            <select id="memberType" class="w-full px-4 py-3 border rounded-xl mb-4">
                 <option value="executor">Executor</option>
                 <option value="manager">Gerente</option>
             </select>
-            <button onclick="saveMember()" class="w-full btn-primary py-3 mt-4">Salvar</button>
-            <button onclick="closeMemberModal()" class="w-full mt-2 text-slate-500 py-2">Cancelar</button>
+            <button onclick="saveMember()" class="w-full py-3 bg-monday-blue text-white rounded-xl font-bold mb-2">Salvar</button>
+            <button onclick="closeMemberModal()" class="w-full py-3 border rounded-xl">Cancelar</button>
         </div>
     </div>
-
-    <div id="passwordModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="text-2xl font-black mb-6">🔑 Alterar Senha</h2>
-            <input type="password" id="senhaAtual" placeholder="Senha atual" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="password" id="senhaNova" placeholder="Nova senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="password" id="senhaConfirmar" placeholder="Confirmar" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <button onclick="alterarSenha()" class="w-full btn-primary py-3">Alterar</button>
-            <button onclick="closePasswordModal()" class="w-full mt-2 btn-outline py-3">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="newBoardModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="text-2xl font-black mb-6">📄 Novo Projeto</h2>
-            <input type="text" id="newBoardName" placeholder="Nome do projeto *" class="w-full p-4 border rounded-xl bg-transparent">
-            <div class="flex gap-3 mt-6"><button onclick="createNewBoardFromModal()" class="flex-1 btn-primary py-3">Criar</button><button onclick="closeNewBoardModal()" class="flex-1 btn-outline py-3">Cancelar</button></div>
-        </div>
-    </div>
-
-    <div id="userMenu" class="hidden absolute right-4 top-14 bg-white dark:bg-[#181829] border rounded-xl shadow-lg z-50 w-40">
-        <button onclick="openPasswordModal()" class="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 rounded-lg">🔑 Alterar Senha</button>
-        <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button>
-    </div>
-
-    <div id="memberSidebarOverlay" class="sidebar-overlay" onclick="closeMemberSidebar()"></div>
-    <div id="memberSidebar" class="member-sidebar">
-        <div class="p-6 border-b"><div class="flex items-center gap-3"><div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div><div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div><button onclick="closeMemberSidebar()" class="ml-auto text-2xl">&times;</button></div><div id="sidebarMemberInfo" class="info-grid mt-4"></div></div>
-        <div class="p-6" id="memberSidebarContent"></div>
-    </div>
-
-    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 transition-all duration-300 z-[9999]">Alterações salvas!</div>
-    <div id="dropdownPortal"></div>
 
     <script>
-        // ==================== DATA STRUCTURE ====================
+        // Estado inicial com dados de exemplo
         let state = {
-            version: '1.0.0', lastModified: new Date().toISOString(),
-            activeView: 'home', boardView: 'table', calendarDate: new Date(),
-            activeBoardId: null, darkMode: false, searchQuery: '',
-            currentUser: null, selectedUserId: null, tempUser: null,
-            autoSaveEnabled: false, autoSaveInterval: null, currentFilePath: null,
-            collapsedGroups: {}, team: [], boards: []
+            version: '1.0.0',
+            lastModified: new Date().toISOString(),
+            activeView: 'home',
+            boardView: 'table',
+            activeBoardId: null,
+            darkMode: false,
+            searchQuery: '',
+            currentUser: null,
+            collapsedGroups: {},
+            team: [
+                { id: 'admin1', username: 'admin', name: 'Administrador', password: btoa('admin123'), color: '#0073ea', role: 'Gerente', type: 'manager', firstAccess: false },
+                { id: 'user1', username: 'joao', name: 'João Silva', password: btoa('123456'), color: '#00ca72', role: 'Desenvolvedor', type: 'executor', firstAccess: false }
+            ],
+            boards: [
+                {
+                    id: 1,
+                    name: 'Projeto Principal',
+                    managerId: 'admin1',
+                    groups: [
+                        {
+                            id: 'g1',
+                            name: 'Desenvolvimento',
+                            color: '#0073ea',
+                            tasks: [
+                                { id: 't1', title: 'Configurar ambiente', ownerId: 'user1', status: 'Concluido', priority: 'Alta', timeline: ['2024-01-10', '2024-01-15'] },
+                                { id: 't2', title: 'Desenvolver frontend', ownerId: 'user1', status: 'Trabalhando', priority: 'Alta', timeline: ['2024-01-16', '2024-01-25'] },
+                                { id: 't3', title: 'Testes unitários', ownerId: 'user1', status: 'Nao Iniciado', priority: 'Media', timeline: ['2024-01-26', '2024-01-30'] }
+                            ]
+                        },
+                        {
+                            id: 'g2',
+                            name: 'Documentação',
+                            color: '#a25ddc',
+                            tasks: [
+                                { id: 't4', title: 'Documentar API', ownerId: 'user1', status: 'Nao Iniciado', priority: 'Baixa', timeline: ['2024-01-20', '2024-01-28'] }
+                            ]
+                        }
+                    ]
+                }
+            ]
         };
 
         const STATUS_TYPES = {
@@ -401,332 +241,490 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
-        // ==================== FUNÇÕES UTILITÁRIAS ====================
-        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-        function showToast(msg, isErr) { const t = document.getElementById('toast'); t.textContent = msg; t.style.backgroundColor = isErr ? '#ef4444' : '#1e293b'; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 3000); }
-        
-        function calculateDueDateStatus(dueDate, taskStatus) {
-            if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
-            if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
-            const today = new Date(); today.setHours(0,0,0,0);
-            const due = new Date(dueDate); due.setHours(0,0,0,0);
-            const diffDays = Math.ceil((due - today) / (1000*60*60*24));
-            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)}d` };
-            if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
-            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays}d` };
-            return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#ef4444' : '#1e293b';
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 3000);
         }
-        
-        function calculateProjectProgress(board) {
-            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (!tasks.length) return 0;
-            return Math.round((tasks.filter(t => t.status === 'Concluido').length / tasks.length) * 100);
-        }
-        function isProjectCompleted(board) { const tasks = board.groups?.flatMap(g => g.tasks || []) || []; return tasks.length && tasks.every(t => t.status === 'Concluido'); }
 
-        // ==================== API (COM FALLBACK) ====================
-        async function carregarDadosMongo() {
-            try {
-                console.log('Carregando dados do servidor...');
-                const response = await fetch('/api/dados');
-                const data = await response.json();
-                console.log('Dados recebidos:', data);
-                
-                // Tentar diferentes formatos de resposta
-                if (data.team && data.team.length > 0) {
-                    state.team = data.team;
-                } else if (data.usuarios && data.usuarios.length > 0) {
-                    state.team = data.usuarios;
-                }
-                
-                if (data.boards && data.boards.length > 0) {
-                    state.boards = data.boards;
-                } else if (data.projetos && data.projetos.length > 0) {
-                    state.boards = data.projetos;
-                }
-                
-                // FALLBACK: dados locais se não carregou nada
-                if (state.team.length === 0) {
-                    console.log('⚠️ Nenhum usuário carregado, usando dados locais');
-                    state.team = [
-                        { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário', type: 'manager', firstAccess: false },
-                        { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', type: 'executor', firstAccess: false }
-                    ];
-                }
-                
-                if (state.boards.length === 0) {
-                    console.log('⚠️ Nenhum projeto carregado, usando dados locais');
-                    const today = new Date();
-                    const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
-                    state.boards = [{ id: Date.now(), name: 'Projeto de Exemplo', managerId: state.team[0]?.id, groups: [{ id: 'g1', name: 'Fase 1', color: '#0073ea', tasks: [{ id: 't1', title: 'Tarefa exemplo', ownerId: state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }] }] }];
-                }
-                
-                console.log(`✅ ${state.team.length} usuários, ${state.boards.length} projetos`);
-                if (state.currentUser) render();
-                
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                // FALLBACK em caso de erro
-                state.team = [
-                    { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário', type: 'manager', firstAccess: false },
-                    { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', type: 'executor', firstAccess: false }
-                ];
-                const today = new Date();
-                const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
-                state.boards = [{ id: Date.now(), name: 'Projeto de Exemplo', managerId: state.team[0]?.id, groups: [{ id: 'g1', name: 'Fase 1', color: '#0073ea', tasks: [{ id: 't1', title: 'Tarefa exemplo', ownerId: state.team[0]?.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today.toISOString().split('T')[0], nextWeek.toISOString().split('T')[0]] }] }] }];
-                showToast('Erro ao conectar ao servidor, usando dados locais', true);
-                if (state.currentUser) render();
+        function saveToLocalStorage() {
+            localStorage.setItem('workspace_data', JSON.stringify(state));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('workspace_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                    if (!state.collapsedGroups) state.collapsedGroups = {};
+                    if (!state.boards) state.boards = [];
+                    if (!state.team) state.team = [];
+                    showToast('Dados carregados!');
+                } catch(e) { console.error(e); }
             }
         }
 
-        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {} }
-        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {} }
-        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) {} }
-        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {} }
-        async function save() { await Promise.all([salvarEquipe(), salvarBoards()]); }
-        
-        function openDatabaseFile() {
-            const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                try {
-                    const text = await file.text();
-                    const imported = JSON.parse(text);
-                    if (imported.team && imported.boards) {
-                        state.team = imported.team; state.boards = imported.boards;
-                        await save(); renderUserList(); render(); renderSidebar();
-                        showToast('✅ Banco carregado');
-                    }
-                } catch(e) { showToast('❌ Erro', true); }
-            };
-            input.click();
-        }
-        function saveDatabaseFile() {
-            const dataStr = JSON.stringify({ team: state.team, boards: state.boards }, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
+        function exportJSON() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
-            a.href = url; a.click(); URL.revokeObjectURL(url);
-            showToast('✅ Dados exportados');
+            a.href = url;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('📤 Exportado!');
         }
 
-        // ==================== LOGIN ====================
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    state = { ...state, ...imported };
+                    if (!state.collapsedGroups) state.collapsedGroups = {};
+                    saveToLocalStorage();
+                    renderUserList();
+                    render();
+                    showToast('📥 Importado!');
+                } catch(err) { showToast('Erro ao importar', true); }
+            };
+            reader.readAsText(file);
+        }
+
         function renderUserList() {
-            const list = document.getElementById('userList');
-            if (!list) return;
-            list.innerHTML = state.team.map(u => `
-                <div class="user-item ${state.selectedUserId === u.id ? 'selected' : ''}" onclick="selectUser('${u.id}')">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${u.color}">${u.name.charAt(0)}</div>
-                    <div><div class="font-bold">${escapeHtml(u.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(u.username)}</div></div>
-                    ${u.firstAccess ? '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
+            const container = document.getElementById('userList');
+            if (!container) return;
+            container.innerHTML = state.team.map(user => `
+                <div onclick="selectUser('${user.id}')" class="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 border-b">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${user.color}">${user.name.charAt(0)}</div>
+                    <div><div class="font-bold">${escapeHtml(user.name)}</div><div class="text-xs text-slate-400">@${escapeHtml(user.username)}</div></div>
+                    ${user.firstAccess ? '<span class="ml-auto text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
                 </div>
             `).join('');
         }
-        function selectUser(id) { state.selectedUserId = id; document.getElementById('loginPassword').disabled = false; document.getElementById('loginButton').disabled = false; renderUserList(); }
+
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        let selectedUserId = null;
+        function selectUser(id) {
+            selectedUserId = id;
+            document.getElementById('loginPassword').disabled = false;
+            document.getElementById('loginButton').disabled = false;
+            document.getElementById('loginPassword').focus();
+            renderUserList();
+        }
+
         function handleLogin() {
-            const pwd = document.getElementById('loginPassword').value;
-            const user = state.team.find(u => u.id === state.selectedUserId);
+            const password = document.getElementById('loginPassword').value;
+            const user = state.team.find(u => u.id === selectedUserId);
             if (!user) { alert('Selecione um usuário'); return; }
-            if (btoa(pwd) === user.password) {
-                if (user.firstAccess) { state.tempUser = user; document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('loginModal').style.display = 'none'; }
-                else { completeLogin(user); }
-            } else { alert('Senha incorreta'); }
+            if (btoa(password) === user.password) {
+                state.currentUser = user;
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('currentUserAvatar').style.background = user.color;
+                document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
+                document.getElementById('currentUserName').textContent = user.name;
+                document.getElementById('currentUserRole').textContent = user.type === 'manager' ? 'Gerente' : 'Executor';
+                updateUIBasedOnPermissions();
+                render();
+                showToast(`Bem-vindo, ${user.name}!`);
+            } else { alert('Senha incorreta!'); }
         }
-        function completeLogin(user) {
-            state.currentUser = user;
-            document.getElementById('currentUserAvatar').style.background = user.color;
-            document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
-            document.getElementById('currentUserName').textContent = user.name;
-            document.getElementById('loginModal').style.display = 'none';
-            updateUIBasedOnPermissions();
-            render(); renderSidebar();
-            showToast(`Bem-vindo, ${user.name}!`);
-        }
-        function openPasswordModal() { document.getElementById('userMenu').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('hidden'); }
-        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
-        async function alterarSenha() {
-            const atual = document.getElementById('senhaAtual').value;
-            const nova = document.getElementById('senhaNova').value;
-            const conf = document.getElementById('senhaConfirmar').value;
-            if (!atual || !nova || !conf) { alert('Preencha todos os campos'); return; }
-            if (btoa(atual) !== state.currentUser.senha) { alert('Senha atual incorreta'); return; }
-            if (nova !== conf) { alert('Senhas não conferem'); return; }
-            if (nova.length < 4) { alert('Mínimo 4 caracteres'); return; }
-            state.currentUser.senha = btoa(nova);
-            state.currentUser.firstAccess = false;
-            const usuario = state.team.find(u => u.id === state.currentUser.id);
-            if (usuario) { usuario.senha = btoa(nova); usuario.firstAccess = false; await salvarEquipe(); }
-            closePasswordModal();
-            alert('Senha alterada!');
-            showToast('✅ Senha alterada!');
-        }
-        function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('hidden'); }
-        function logout() { state.currentUser = null; document.getElementById('loginModal').style.display = 'flex'; renderUserList(); render(); }
-        document.addEventListener('click', (e) => { const menu = document.getElementById('userMenu'); const ind = document.getElementById('currentUserIndicator'); if (!ind?.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden'); });
 
-        // ==================== PERMISSÕES ====================
-        function isCurrentUserManager() { return state.currentUser?.type === 'manager'; }
-        function updateUIBasedOnPermissions() {
-            const isMgr = isCurrentUserManager();
-            document.getElementById('newBoardBtn') && (document.getElementById('newBoardBtn').style.display = isMgr ? 'block' : 'none');
-            document.getElementById('addMemberBtn') && (document.getElementById('addMemberBtn').style.display = isMgr ? 'block' : 'none');
+        function logout() {
+            state.currentUser = null;
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('currentUserAvatar').textContent = '?';
+            document.getElementById('currentUserName').textContent = 'Não logado';
+            document.getElementById('currentUserRole').textContent = '-';
+            render();
         }
-        function canEditTask(t) { if (!state.currentUser) return false; if (state.currentUser.type === 'manager') return true; return state.currentUser.type === 'executor' && t.ownerId === state.currentUser.id; }
+
+        function toggleUserMenu() {
+            document.getElementById('userMenu').classList.toggle('hidden');
+        }
+
+        function isCurrentUserManager() { return state.currentUser && state.currentUser.type === 'manager'; }
+        function canEditTask(task) { return state.currentUser && (state.currentUser.type === 'manager' || task.ownerId === state.currentUser.id); }
         function filterTasksByUser(tasks) { if (!state.currentUser) return []; if (state.currentUser.type === 'manager') return tasks; return tasks.filter(t => t.ownerId === state.currentUser.id); }
-
-        // ==================== MEMBROS ====================
-        function openAddMemberModal() { document.getElementById('memberModal').classList.remove('hidden'); }
-        function closeMemberModal() { document.getElementById('memberModal').classList.add('hidden'); }
-        async function saveMember() {
-            const name = document.getElementById('memberName').value.trim();
-            const username = document.getElementById('memberUsername').value.trim();
-            const pwd = document.getElementById('memberPassword').value;
-            const role = document.getElementById('memberRole').value;
-            const type = document.getElementById('memberType').value;
-            if (!name || !username) { alert('Preencha nome e usuário'); return; }
-            if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
-            state.team.push({ id: 'm' + Date.now(), username, name, password: btoa(pwd || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role, cargo: role, type, firstAccess: true });
-            await salvarEquipe(); closeMemberModal(); renderUserList(); renderSidebar(); render();
-            showToast(`✅ Membro ${name} adicionado`);
-        }
-        async function deleteMember(id) {
-            if (!isCurrentUserManager()) return;
-            if (state.team.length <= 1) return alert("Mínimo um membro");
-            const m = state.team.find(u => u.id === id);
-            if (m.type === 'manager' && state.team.filter(u => u.type === 'manager').length <= 1) return alert("Não pode remover único gerente");
-            if (!confirm(`Remover ${m.name}?`)) return;
-            const manager = state.team.find(u => u.type === 'manager');
-            if (manager) { state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (t.ownerId === id) t.ownerId = manager.id; }); }); }); }
-            state.team = state.team.filter(u => u.id !== id);
-            await salvarEquipe(); renderUserList(); renderSidebar(); render();
-            showToast(`✅ Membro removido`);
+        function calculateDueDateStatus(dueDate, taskStatus) {
+            if (taskStatus === 'Concluido') return { status: 'ok', class: 'text-green-600', label: 'Concluído' };
+            if (!dueDate) return { status: 'none', class: '', label: 'Sem data' };
+            const today = new Date(); today.setHours(0,0,0,0);
+            const due = new Date(dueDate); due.setHours(0,0,0,0);
+            const diff = Math.ceil((due - today) / (1000*60*60*24));
+            if (diff < 0) return { status: 'overdue', class: 'text-red-500 font-bold', label: `Atrasado ${Math.abs(diff)}d` };
+            if (diff === 0) return { status: 'today', class: 'text-orange-500 font-bold', label: 'Vence hoje' };
+            if (diff <= 7) return { status: 'week', class: 'text-blue-500', label: `${diff}d` };
+            return { status: 'ok', class: 'text-green-600', label: 'OK' };
         }
 
-        // ==================== SIDEBAR ====================
+        function calculateProjectProgress(board) {
+            const allTasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            if (allTasks.length === 0) return 0;
+            const completed = allTasks.filter(t => t.status === 'Concluido').length;
+            return Math.round((completed / allTasks.length) * 100);
+        }
+
+        function toggleGroup(groupId) { state.collapsedGroups[groupId] = !state.collapsedGroups[groupId]; render(); }
+        function isGroupCollapsed(groupId) { return state.collapsedGroups[groupId] || false; }
+        function filterTasks(val) { state.searchQuery = val; render(); }
+        function changeMainView(v) { state.activeView = v; render(); }
+        function changeView(v) { state.boardView = v; render(); }
+        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); saveToLocalStorage(); }
         function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
         function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobileOverlay').classList.remove('open'); }
-        
-        function renderSidebar() {
-            const ativos = state.boards.filter(b => !isProjectCompleted(b));
-            const concluidos = state.boards.filter(b => isProjectCompleted(b));
-            const renderList = (boards, showProgress) => boards.map(b => {
-                const progress = calculateProjectProgress(b);
-                return `<div onclick="selectBoard(${b.id})" class="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 mb-1">
-                    <span class="text-lg">📋</span>
-                    <div class="flex-1"><div class="text-sm font-medium">${escapeHtml(b.name)}</div>${showProgress ? `<div class="progress-bar mt-1"><div class="progress-fill" style="width: ${progress}%"></div></div><span class="text-[8px] text-slate-400">${progress}%</span>` : ''}</div>
-                    ${isCurrentUserManager() ? `<button onclick="deleteBoard(event, ${b.id})" class="text-slate-400 hover:text-red-500 text-xs">✕</button>` : ''}
-                </div>`;
-            }).join('');
-            document.getElementById('board-list').innerHTML = `<div class="mb-4"><p class="text-xs font-bold text-slate-400 uppercase mb-2">📊 Em Andamento</p>${renderList(ativos, true)}</div>${concluidos.length ? `<div><p class="text-xs font-bold text-slate-400 uppercase mb-2">✅ Concluídos</p>${renderList(concluidos, false)}</div>` : ''}`;
-            document.getElementById('sidebar-team').innerHTML = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110" style="background: ${m.color}">${m.name.charAt(0)}</div>`).join('');
-        }
-        
-        function openMemberSidebar(id) {
-            const m = state.team.find(u => u.id === id);
-            if (!m) return;
-            document.getElementById('sidebarMemberAvatar').style.background = m.color;
-            document.getElementById('sidebarMemberAvatar').innerHTML = m.name.charAt(0);
-            document.getElementById('sidebarMemberName').innerText = m.name;
-            document.getElementById('sidebarMemberRole').innerText = m.role || 'Membro';
-            document.getElementById('memberSidebar').classList.add('open');
-            document.getElementById('memberSidebarOverlay').classList.add('open');
-        }
-        function closeMemberSidebar() { document.getElementById('memberSidebar').classList.remove('open'); document.getElementById('memberSidebarOverlay').classList.remove('open'); }
 
-        // ==================== RENDER PRINCIPAL ====================
+        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); }
+
+        function updateUIBasedOnPermissions() {
+            const isManager = isCurrentUserManager();
+            const newBoardBtn = document.getElementById('newBoardBtn');
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            const deleteBoardBtn = document.getElementById('deleteBoardBtn');
+            const boardTitle = document.getElementById('board-title');
+            if (newBoardBtn) newBoardBtn.style.display = isManager ? 'block' : 'none';
+            if (addMemberBtn) addMemberBtn.style.display = isManager ? 'block' : 'none';
+            if (deleteBoardBtn) deleteBoardBtn.style.display = isManager ? 'block' : 'none';
+            if (boardTitle) boardTitle.contentEditable = isManager;
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('board-list');
+            if (!list) return;
+            list.innerHTML = state.boards.map(b => `
+                <div onclick="selectBoard(${b.id})" class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${state.activeBoardId === b.id && state.activeView === 'board' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-monday-blue' : ''}">
+                    <span>📋</span>
+                    <div class="flex-1"><div class="text-sm font-medium">${escapeHtml(b.name)}</div><div class="progress-bar mt-1 w-full"><div class="progress-fill" style="width: ${calculateProjectProgress(b)}%"></div></div></div>
+                </div>
+            `).join('');
+            const teamList = document.getElementById('sidebar-team');
+            if (teamList) teamList.innerHTML = state.team.map(m => `<div class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer" style="background: ${m.color}" title="${escapeHtml(m.name)}">${m.name.charAt(0)}</div>`).join('');
+        }
+
         function render() {
             if (!state.currentUser) return;
-            renderSidebar(); updateUIBasedOnPermissions();
+            renderSidebar();
+            updateUIBasedOnPermissions();
             const container = document.getElementById('view-container');
+            const header = document.getElementById('board-header');
             if (!container) return;
             
-            if (state.activeView === 'home') { renderHome(); document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active')); document.getElementById('bottom-home')?.classList.add('active'); }
-            else if (state.activeView === 'dashboard') { renderDashboard(); document.getElementById('bottom-dash')?.classList.add('active'); }
-            else if (state.activeView === 'team') { renderTeamView(); document.getElementById('bottom-team')?.classList.add('active'); }
-            else if (state.activeView === 'reports') { renderReports(); document.getElementById('bottom-reports')?.classList.add('active'); }
-            else if (state.activeView === 'board') { renderBoardView(); }
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('text-monday-blue', 'bg-slate-50'));
+            if (header) header.classList.add('hidden');
+            
+            if (state.activeView === 'home') { container.innerHTML = renderHome(); document.getElementById('btn-home')?.classList.add('text-monday-blue'); }
+            else if (state.activeView === 'dashboard') { container.innerHTML = renderDashboard(); document.getElementById('btn-dash')?.classList.add('text-monday-blue'); setTimeout(initDashboardCharts, 100); }
+            else if (state.activeView === 'team') { container.innerHTML = renderTeamView(); document.getElementById('btn-team')?.classList.add('text-monday-blue'); }
+            else if (state.activeView === 'reports') { container.innerHTML = renderReports(); document.getElementById('btn-reports')?.classList.add('text-monday-blue'); }
+            else if (state.activeView === 'board' && state.activeBoardId) { 
+                header.classList.remove('hidden');
+                const board = state.boards.find(b => b.id === state.activeBoardId);
+                if (board) {
+                    document.getElementById('board-title').innerText = board.name;
+                    if (state.boardView === 'table') container.innerHTML = renderTable();
+                    else container.innerHTML = renderKanban();
+                }
+            }
         }
-        
+
         function renderHome() {
-            const ativos = state.boards.filter(b => !isProjectCompleted(b));
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-6"><div><h1 class="text-2xl md:text-3xl font-black">Olá, ${escapeHtml(state.currentUser.name)}!</h1><p class="text-sm text-slate-500">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p></div>${isCurrentUserManager() ? '<button onclick="openNewBoardModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Novo</button>' : ''}</div>
-                    <div class="processos-grid">${ativos.map(b => {
-                        const tasks = b.groups?.flatMap(g => g.tasks || []) || [];
-                        const userTasks = filterTasksByUser(tasks);
-                        const dueStatus = userTasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
-                        const progress = calculateProjectProgress(b);
-                        return `<div onclick="selectBoard(${b.id})" class="process-card"><div class="text-3xl mb-2">📋</div><h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3><div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div><div class="text-xs text-slate-400 mb-3">${progress}% concluído</div><div class="space-y-1 text-xs"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span><span>Atrasados: ${dueStatus.filter(s => s.status === 'overdue').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span>Vencem hoje: ${dueStatus.filter(s => s.status === 'today').length}</span></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Vencem em 7 dias: ${dueStatus.filter(s => s.status === 'week').length}</span></div></div><div class="mt-3 pt-2 flex justify-between items-center text-xs border-t"><span>${tasks.length} tarefas</span><div class="flex -space-x-2">${state.team.slice(0,3).map(m => `<div class="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900" style="background: ${m.color}"></div>`).join('')}</div></div></div>`;
-                    }).join('')}${ativos.length === 0 ? '<div class="col-span-full text-center py-12 text-slate-400">Nenhum projeto em andamento</div>' : ''}</div>
-                </div>`;
+            const activeBoards = state.boards;
+            return `
+                <div class="max-w-6xl mx-auto py-12">
+                    <h1 class="text-4xl font-black mb-2">Olá, ${escapeHtml(state.currentUser.name)}!</h1>
+                    <p class="text-slate-500 mb-8">${state.currentUser.type === 'manager' ? 'Gerencie seus projetos' : 'Suas tarefas'}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${activeBoards.map(b => {
+                            const tasks = b.groups?.flatMap(g => g.tasks || []) || [];
+                            const userTasks = filterTasksByUser(tasks);
+                            const progress = calculateProjectProgress(b);
+                            return `
+                                <div onclick="selectBoard(${b.id})" class="bg-white dark:bg-[#181829] p-6 rounded-2xl border hover:shadow-xl cursor-pointer">
+                                    <h3 class="font-bold text-lg mb-2">${escapeHtml(b.name)}</h3>
+                                    <div class="progress-bar mb-2"><div class="progress-fill" style="width: ${progress}%"></div></div>
+                                    <div class="flex justify-between text-sm"><span>${progress}%</span><span>${userTasks.length} tarefas</span></div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
         }
-        
-        function renderDashboard() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📊 Dashboard em desenvolvimento</div>'; }
-        function renderTeamView() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">👥 Gerenciar Equipe</div>'; }
-        function renderReports() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📈 Relatórios em desenvolvimento</div>'; }
-        function renderBoardView() { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">📋 Visualização do projeto</div>'; }
-        
-        function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; render(); }
-        
-        function changeMainView(v) { 
-            state.activeView = v; 
-            document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
-            if (v === 'home') document.getElementById('bottom-home')?.classList.add('active');
-            if (v === 'dashboard') document.getElementById('bottom-dash')?.classList.add('active');
-            if (v === 'team') document.getElementById('bottom-team')?.classList.add('active');
-            if (v === 'reports') document.getElementById('bottom-reports')?.classList.add('active');
-            render(); 
+
+        function renderTable() {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return '<div class="p-8">Quadro não encontrado</div>';
+            
+            return board.groups.map(g => {
+                const filteredTasks = filterTasksByUser(g.tasks || []);
+                const searchFiltered = filteredTasks.filter(t => t.title?.toLowerCase().includes(state.searchQuery.toLowerCase()));
+                const isCollapsed = isGroupCollapsed(g.id);
+                const isManager = isCurrentUserManager();
+                
+                return `
+                    <div class="mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span onclick="toggleGroup('${g.id}')" class="group-collapse-btn ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                            <div class="w-1.5 h-6 rounded-full" style="background: ${g.color}"></div>
+                            <h3 class="font-black text-lg" ${isManager ? 'contenteditable="true" onblur="renameGroup(' + g.id + ', this.innerText)"' : ''}>${escapeHtml(g.name)}</h3>
+                            <span class="text-xs text-slate-400">${g.tasks?.length || 0} tarefas</span>
+                            ${isManager ? `<button onclick="deleteGroup(${g.id})" class="text-red-400 text-xs ml-2">🗑️</button>` : ''}
+                        </div>
+                        <div class="group-content ${isCollapsed ? 'collapsed' : ''}">
+                            <div class="table-container border rounded-xl bg-white dark:bg-[#181829]">
+                                <table>
+                                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-black">
+                                        <tr><th class="p-3">Tarefa</th><th class="p-3">Responsável</th><th class="p-3">Status</th><th class="p-3">Prazo</th>${isManager ? '<th></th>' : ''}</tr>
+                                    </thead>
+                                    <tbody>
+                                        ${searchFiltered.map(t => {
+                                            const dueStatus = calculateDueDateStatus(t.timeline?.[1], t.status);
+                                            const canEdit = canEditTask(t);
+                                            return `<tr class="border-t">
+                                                <td class="p-3"><input type="text" value="${escapeHtml(t.title)}" ${canEdit ? `onchange="updateTask('${g.id}', '${t.id}', 'title', this.value)"` : 'disabled'} class="bg-transparent w-full outline-none ${!canEdit ? 'opacity-50' : ''}"></td>
+                                                <td class="p-3"><select onchange="updateTask('${g.id}', '${t.id}', 'ownerId', this.value)" ${isManager ? '' : 'disabled'} class="bg-transparent text-xs">${state.team.map(m => `<option value="${m.id}" ${t.ownerId === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}</select></td>
+                                                <td class="p-3"><div class="status-trigger text-xs px-3 py-1 rounded-full" style="background: ${STATUS_TYPES[t.status]?.color};" onclick="${canEdit ? `showStatusDropdown(this, '${g.id}', '${t.id}')` : ''}">${STATUS_TYPES[t.status]?.label}</div></td>
+                                                <td class="p-3"><input type="date" value="${t.timeline?.[1] || ''}" ${canEdit ? `onchange="updateTaskDate('${g.id}', '${t.id}', 1, this.value)"` : 'disabled'} class="bg-transparent text-xs"> <span class="${dueStatus.class} text-xs">${dueStatus.label}</span></td>
+                                                ${isManager ? `<td class="p-3"><button onclick="deleteTask('${g.id}', '${t.id}')" class="text-red-400">🗑️</button></td>` : ''}
+                                            </tr>`;
+                                        }).join('')}
+                                        ${isManager ? `<tr><td colspan="5" class="p-2"><button onclick="addNewTask('${g.id}')" class="w-full py-2 border-dashed border rounded-lg text-slate-400 text-xs">+ Adicionar tarefa</button></td></tr>` : ''}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-        
-        function openNewBoardModal() { document.getElementById('newBoardModal').classList.remove('hidden'); }
-        function closeNewBoardModal() { document.getElementById('newBoardModal').classList.add('hidden'); document.getElementById('newBoardName').value = ''; }
-        
+
+        function renderKanban() {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return '<div class="p-8">Quadro não encontrado</div>';
+            const allTasks = board.groups.flatMap(g => g.tasks.map(t => ({...t, groupId: g.id})));
+            const filteredTasks = filterTasksByUser(allTasks);
+            
+            return `<div class="flex gap-6 overflow-x-auto pb-6 h-full">
+                ${Object.entries(STATUS_TYPES).map(([key, info]) => `
+                    <div class="w-80 flex-shrink-0">
+                        <div class="flex justify-between items-center mb-4 border-b-4 pb-2" style="border-color: ${info.color}">
+                            <h3 class="font-black text-sm">${info.label}</h3>
+                            <span class="text-xs">${filteredTasks.filter(t => t.status === key).length}</span>
+                        </div>
+                        <div class="space-y-3">
+                            ${filteredTasks.filter(t => t.status === key).map(t => {
+                                const canEdit = canEditTask(t);
+                                const group = board.groups.find(g => g.id === t.groupId);
+                                return `<div class="bg-white dark:bg-[#181829] p-4 rounded-xl shadow-sm border">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-bold text-sm">${escapeHtml(t.title)}</h4>
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white" style="background: ${state.team.find(m=>m.id===t.ownerId)?.color || '#ccc'}">${state.team.find(m=>m.id===t.ownerId)?.name.charAt(0) || '?'}</div>
+                                    </div>
+                                    <div class="text-xs text-slate-400 mb-2">${group?.name || ''}</div>
+                                    ${canEdit ? `<div class="status-trigger text-xs px-3 py-1 rounded-full inline-block" style="background: ${info.color};" onclick="showStatusDropdown(this, '${t.groupId}', '${t.id}')">${info.label} ▼</div>` : ''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+
+        function renderDashboard() {
+            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
+            return `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-black mb-6">Dashboard</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl"><h3 class="font-bold">Status das Tarefas</h3><canvas id="statusChart" height="200"></canvas></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl"><h3 class="font-bold">Progresso</h3><canvas id="progressChart" height="200"></canvas></div></div></div>`;
+        }
+
+        function renderTeamView() {
+            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
+            return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-black">Equipe</h2><button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full">+ Membro</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${state.team.map(m => `<div class="bg-white dark:bg-[#181829] p-4 rounded-xl border"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div><div><h3 class="font-bold">${escapeHtml(m.name)}</h3><p class="text-xs text-slate-400">@${escapeHtml(m.username)}</p><span class="text-xs px-2 py-0.5 rounded-full ${m.type === 'manager' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}">${m.type === 'manager' ? 'Gerente' : 'Executor'}</span></div>${m.id !== state.currentUser?.id ? `<div class="ml-auto"><button onclick="deleteMember('${m.id}')" class="text-red-500 text-xs">🗑️</button></div>` : ''}</div></div>`).join('')}</div></div>`;
+        }
+
+        function renderReports() {
+            if (!isCurrentUserManager()) return '<div class="p-8 text-center">Apenas gerentes</div>';
+            let totalTasks = 0, completedTasks = 0;
+            state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { totalTasks++; if (t.status === 'Concluido') completedTasks++; }); }); });
+            return `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-black mb-6">Relatórios</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-blue-500">${totalTasks}</div><div class="text-sm">Total de Tarefas</div></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-green-500">${completedTasks}</div><div class="text-sm">Concluídas</div></div><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl text-center"><div class="text-4xl font-bold text-orange-500">${totalTasks - completedTasks}</div><div class="text-sm">Pendentes</div></div></div></div>`;
+        }
+
+        function initDashboardCharts() {
+            const statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
+            state.boards.forEach(b => { b.groups.forEach(g => { g.tasks.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; }); }); });
+            const canvas1 = document.getElementById('statusChart');
+            if (canvas1 && typeof Chart !== 'undefined') new Chart(canvas1, { type: 'pie', data: { labels: Object.values(STATUS_TYPES).map(s => s.label), datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.values(STATUS_TYPES).map(s => s.color) }] } });
+            const canvas2 = document.getElementById('progressChart');
+            if (canvas2 && typeof Chart !== 'undefined') new Chart(canvas2, { type: 'bar', data: { labels: state.boards.map(b => b.name), datasets: [{ label: 'Progresso (%)', data: state.boards.map(b => calculateProjectProgress(b)), backgroundColor: '#0073ea' }] } });
+        }
+
+        async function updateTask(gId, tId, field, val) {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            const group = board?.groups.find(g => g.id == gId);
+            const task = group?.tasks.find(t => t.id == tId);
+            if (task) { task[field] = val; saveToLocalStorage(); render(); showToast('Salvo'); }
+        }
+
+        async function updateTaskDate(gId, tId, idx, val) {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            const group = board?.groups.find(g => g.id == gId);
+            const task = group?.tasks.find(t => t.id == tId);
+            if (task) { if (!task.timeline) task.timeline = ['', '']; task.timeline[idx] = val; saveToLocalStorage(); render(); showToast('Data atualizada'); }
+        }
+
+        async function addNewTask(groupId) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            const group = board?.groups.find(g => g.id == groupId);
+            if (group) {
+                const today = new Date().toISOString().split('T')[0];
+                const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+                group.tasks.push({ id: Date.now() + Math.random(), title: 'Nova tarefa', ownerId: state.currentUser.id, status: 'Nao Iniciado', priority: 'Media', timeline: [today, nextWeek] });
+                saveToLocalStorage();
+                render();
+            }
+        }
+
+        async function deleteTask(gId, tId) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            const group = board?.groups.find(g => g.id == gId);
+            if (group) { group.tasks = group.tasks.filter(t => t.id != tId); saveToLocalStorage(); render(); showToast('Tarefa removida'); }
+        }
+
+        async function addNewGroup() {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (board) {
+                board.groups.push({ id: Date.now() + Math.random(), name: 'Novo Grupo', color: '#0073ea', tasks: [] });
+                saveToLocalStorage();
+                render();
+            }
+        }
+
+        async function deleteGroup(groupId) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (board) { board.groups = board.groups.filter(g => g.id != groupId); saveToLocalStorage(); render(); showToast('Grupo removido'); }
+        }
+
+        async function renameGroup(gId, newVal) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            const group = board?.groups.find(g => g.id == gId);
+            if (group) { group.name = newVal; saveToLocalStorage(); render(); }
+        }
+
+        async function renameBoard(newVal) {
+            if (!isCurrentUserManager()) return;
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (board) { board.name = newVal; saveToLocalStorage(); render(); }
+        }
+
+        async function deleteActiveBoard() {
+            if (!isCurrentUserManager()) return;
+            if (confirm('Excluir este projeto?')) {
+                state.boards = state.boards.filter(b => b.id !== state.activeBoardId);
+                state.activeView = 'home';
+                saveToLocalStorage();
+                render();
+            }
+        }
+
         async function createNewBoard() {
-            if (!isCurrentUserManager()) { showToast('Apenas gerentes', true); return; }
-            const name = prompt("Nome do projeto:");
-            if (!name) return;
-            const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
-            state.boards.push(newBoard);
-            await salvarBoard(newBoard);
-            selectBoard(newBoard.id);
-            showToast(`✅ Projeto "${name}" criado!`);
+            if (!isCurrentUserManager()) return;
+            const name = prompt('Nome do projeto:');
+            if (name) {
+                state.boards.push({ id: Date.now(), name, managerId: state.currentUser.id, groups: [] });
+                saveToLocalStorage();
+                render();
+            }
         }
-        
-        async function createNewBoardFromModal() {
-            const name = document.getElementById('newBoardName').value.trim();
-            if (!name) { alert('Digite o nome'); return; }
-            const newBoard = { id: Date.now(), name, managerId: state.currentUser.id, groups: [] };
-            state.boards.push(newBoard);
-            await salvarBoard(newBoard);
-            closeNewBoardModal();
-            selectBoard(newBoard.id);
-            showToast(`✅ Projeto "${name}" criado!`);
+
+        function openAddMemberModal() {
+            if (!isCurrentUserManager()) return;
+            document.getElementById('memberId').value = '';
+            document.getElementById('memberName').value = '';
+            document.getElementById('memberUsername').value = '';
+            document.getElementById('memberPassword').value = '';
+            document.getElementById('memberType').value = 'executor';
+            document.getElementById('memberModal').style.display = 'flex';
         }
-        
-        async function deleteBoard(e, id) {
-            e.stopPropagation();
-            if (!confirm('Excluir projeto?')) return;
-            state.boards = state.boards.filter(b => b.id !== id);
-            await deletarBoard(id);
-            if (state.activeBoardId === id) state.activeView = 'home';
-            render();
-            renderSidebar();
-            showToast('✅ Projeto excluído');
-        }
-        
-        function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); }
-        
-        // ==================== INICIALIZAÇÃO ====================
-        window.onload = async () => {
-            await carregarDadosMongo();
-            if (state.darkMode) document.documentElement.classList.add('dark');
+
+        function closeMemberModal() { document.getElementById('memberModal').style.display = 'none'; }
+
+        function saveMember() {
+            const id = document.getElementById('memberId').value;
+            const name = document.getElementById('memberName').value;
+            const username = document.getElementById('memberUsername').value;
+            const password = document.getElementById('memberPassword').value;
+            const type = document.getElementById('memberType').value;
+            if (!name || !username) { alert('Preencha nome e usuário'); return; }
+            if (id) {
+                const member = state.team.find(m => m.id === id);
+                if (member) { member.name = name; member.username = username; if (password) member.password = btoa(password); member.type = type; }
+            } else {
+                state.team.push({ id: Date.now() + Math.random(), username, name, password: btoa(password || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role: 'Membro', type, firstAccess: false });
+            }
+            saveToLocalStorage();
+            closeMemberModal();
             renderUserList();
-            document.getElementById('loginModal').style.display = 'flex';
-            if (state.currentUser) { document.getElementById('loginModal').style.display = 'none'; updateUIBasedOnPermissions(); render(); renderSidebar(); }
-        };
+            render();
+            showToast('Membro salvo');
+        }
+
+        function deleteMember(id) {
+            if (!isCurrentUserManager()) return;
+            if (state.team.length <= 1) { alert('Equipe deve ter pelo menos um membro'); return; }
+            if (confirm('Remover este membro?')) {
+                state.team = state.team.filter(m => m.id !== id);
+                saveToLocalStorage();
+                renderUserList();
+                render();
+            }
+        }
+
+        let activeDropdown = null;
+        function showStatusDropdown(trigger, groupId, taskId) {
+            if (activeDropdown) activeDropdown.remove();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown-portal';
+            const rect = trigger.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            dropdown.style.left = (rect.left + window.scrollX) + 'px';
+            Object.entries(STATUS_TYPES).forEach(([key, info]) => {
+                const btn = document.createElement('button');
+                btn.textContent = info.label;
+                btn.style.borderLeft = `4px solid ${info.color}`;
+                btn.style.padding = '8px 12px';
+                btn.style.display = 'block';
+                btn.style.width = '100%';
+                btn.style.textAlign = 'left';
+                btn.style.fontSize = '12px';
+                btn.onclick = () => { updateTask(groupId, taskId, 'status', key); dropdown.remove(); activeDropdown = null; };
+                dropdown.appendChild(btn);
+            });
+            document.getElementById('dropdownPortal').appendChild(dropdown);
+            activeDropdown = dropdown;
+            setTimeout(() => {
+                document.addEventListener('click', function close(e) { if (!dropdown.contains(e.target) && e.target !== trigger) { dropdown.remove(); activeDropdown = null; document.removeEventListener('click', close); } });
+            }, 100);
+        }
+
+        document.addEventListener('click', (e) => { if (!e.target.classList?.contains('status-trigger') && activeDropdown) { activeDropdown.remove(); activeDropdown = null; } });
+
+        loadFromLocalStorage();
+        if (!state.team.length) {
+            state.team = [{ id: 'admin1', username: 'admin', name: 'Administrador', password: btoa('admin123'), color: '#0073ea', role: 'Gerente', type: 'manager', firstAccess: false }];
+            state.boards = [{ id: 1, name: 'Meu Projeto', managerId: 'admin1', groups: [] }];
+        }
+        renderUserList();
+        document.getElementById('loginModal').style.display = 'flex';
     </script>
 </body>
 </html>
