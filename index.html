@@ -475,6 +475,16 @@
             margin: 0 auto 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .network-mode {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #3b82f620;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -505,6 +515,7 @@
                     <div id="currentUserAvatar" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm">?</div>
                     <span id="currentUserName" class="text-sm font-bold hidden sm:inline">Não logado</span>
                 </div>
+                <div id="networkMode" class="network-mode">📁 Local</div>
                 <button onclick="toggleDarkMode()" class="p-2 hover:bg-slate-100 rounded-full text-xl">🌓</button>
                 <div class="flex gap-2">
                     <button onclick="saveDatabaseFile()" class="text-[10px] font-bold p-2 bg-green-500 text-white rounded-md">💾 Salvar</button>
@@ -674,22 +685,30 @@
         }
 
         // ==================== PERSISTÊNCIA (MongoDB + localStorage) ====================
-        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {} }
-        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {} }
-        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) {} }
-        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {} }
+        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) { console.warn('Erro ao salvar equipe no MongoDB', e); } }
+        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) { console.warn('Erro ao salvar boards no MongoDB', e); } }
+        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) { console.warn('Erro ao salvar board no MongoDB', e); } }
+        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) { console.warn('Erro ao deletar board no MongoDB', e); } }
         
         async function carregarDadosMongo() {
             try {
                 const response = await fetch('/api/dados');
+                if (!response.ok) throw new Error('HTTP error');
                 const data = await response.json();
                 if (data.team && data.team.length) state.team = data.team;
                 if (data.boards && data.boards.length) state.boards = data.boards;
                 document.getElementById('networkMode').innerHTML = '🌐 MongoDB Online';
+                document.getElementById('networkMode').style.background = '#10b98120';
+                document.getElementById('networkMode').style.color = '#10b981';
+                document.getElementById('networkMode').style.borderColor = '#10b981';
+                console.log('Dados carregados do MongoDB');
                 return true;
             } catch (error) {
                 console.log('MongoDB offline, usando localStorage');
                 document.getElementById('networkMode').innerHTML = '📁 LocalStorage';
+                document.getElementById('networkMode').style.background = '#94a3b820';
+                document.getElementById('networkMode').style.color = '#64748b';
+                document.getElementById('networkMode').style.borderColor = '#94a3b8';
                 return false;
             }
         }
@@ -842,7 +861,7 @@
             if (!name || !username) { alert('Preencha nome e usuário'); return; }
             
             if (id) {
-                // EDIÇÃO
+                // EDIÇÃO: verifica duplicidade ignorando o próprio ID
                 const member = state.team.find(m => m.id === id);
                 if (!member) { alert('Membro não encontrado'); return; }
                 if (state.team.some(m => m.id !== id && m.username === username)) { alert('Nome de usuário já existe'); return; }
@@ -1465,8 +1484,9 @@
         
         // ==================== INICIALIZAÇÃO ====================
         window.onload = async () => {
-            await carregarDadosMongo();
-            loadFromLocalStorage();
+            await carregarDadosMongo();  // PRIORIDADE: carregar do MongoDB
+            loadFromLocalStorage();      // fallback se MongoDB falhou
+            // Se ainda não há dados, criar dados de exemplo
             if (!state.team.length) {
                 state.team = [
                     { id: 'm1', username: 'gerente', name: 'João Silva', password: btoa('123456'), color: '#ffad00', role: 'Gerente de Projetos', email: 'joao@empresa.com', phone: '(11) 99999-9999', cargo: 'Gerente de Projetos', type: 'manager', firstAccess: false },
