@@ -2,15 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace Pro - Enterprise Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <meta name="theme-color" content="#0073ea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- FORÇAR NÃO CACHE -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="version" content="2.0.1">
+    <title>Workspace Pro - Gerenciador de Projetos (v2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Figtree', 'sans-serif'] },
+                    colors: {
+                        monday: { blue: '#0073ea', green: '#00ca72', red: '#fb275d', orange: '#ffad00', purple: '#a25ddc', gray: '#c4c4c4', bg: '#f5f6f8', dark: '#111122' }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* ===== ESTILOS GLOBAIS (mantidos do original) ===== */
         * { font-family: 'Figtree', sans-serif; }
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -212,30 +229,31 @@
         th, td { padding: 12px 8px; vertical-align: middle; }
         input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; width: 85px; }
         
-        .gantt-container {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: auto;
+        /* GANTT COM CABEÇALHO FIXO */
+        .gantt-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
             max-height: 600px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            position: relative;
         }
-        .dark .gantt-container { background: #181829; border-color: #2d2d3f; }
+        .dark .gantt-wrapper { background: #181829; border-color: #2d2d3f; }
+        .gantt-container {
+            min-width: max-content;
+            display: flex;
+            flex-direction: column;
+        }
         .gantt-header {
             display: flex;
             background: #f8fafc;
             border-bottom: 2px solid #e2e8f0;
             position: sticky;
             top: 0;
-            z-index: 20;
-            min-width: fit-content;
+            z-index: 30;
         }
         .dark .gantt-header { background: #1e1e2e; border-bottom-color: #2d2d3f; }
-        .gantt-row {
-            display: flex;
-            border-bottom: 1px solid #f1f5f9;
-            min-width: fit-content;
-        }
-        .dark .gantt-row { border-bottom-color: #1e1e2e; }
         .gantt-task-col {
             width: 280px;
             flex-shrink: 0;
@@ -246,13 +264,12 @@
             background: inherit;
             position: sticky;
             left: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            z-index: 20;
         }
         .dark .gantt-task-col { border-right-color: #2d2d3f; }
-        .gantt-days { display: flex; }
+        .gantt-days {
+            display: flex;
+        }
         .gantt-day {
             width: 48px;
             flex-shrink: 0;
@@ -266,12 +283,14 @@
         .gantt-day.weekend { background: #f1f5f9; }
         .dark .gantt-day.weekend { background: #1a1a2a; }
         .gantt-day.today { background: #e6f0ff; color: #0073ea; font-weight: 800; }
-        .gantt-timeline { position: relative; height: 48px; width: fit-content; }
+        .gantt-timeline {
+            position: relative;
+            height: 48px;
+        }
         .gantt-task-bar {
             position: absolute;
             height: 24px;
             border-radius: 12px;
-            background: #0073ea;
             top: 12px;
             display: flex;
             align-items: center;
@@ -284,41 +303,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .gantt-today-marker {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #ef4444;
-            z-index: 15;
-            pointer-events: none;
-        }
-        .move-task-btn {
-            opacity: 0;
-            transition: opacity 0.2s;
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
+        .move-task-btn { opacity: 0; transition: opacity 0.2s; background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
         tr:hover .move-task-btn { opacity: 1; }
         
-        .status-trigger {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 36px;
-            padding: 0 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-            white-space: nowrap;
-        }
+        .status-trigger { cursor: pointer; display: flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; white-space: nowrap; }
         .dropdown-portal {
             position: fixed;
             z-index: 9999999;
@@ -327,8 +315,21 @@
             border-radius: 8px;
             padding: 4px;
             min-width: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         .dark .dropdown-portal { background: #1e1e2e; border-color: #2d2d3f; }
+        .dropdown-portal button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            text-align: left;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
         
         .group-collapse-btn { cursor: pointer; font-size: 16px; margin-right: 8px; color: #64748b; transition: transform 0.2s; display: inline-block; }
         .group-collapse-btn.collapsed { transform: rotate(-90deg); }
@@ -341,145 +342,43 @@
         .info-item { background: #f8fafc; padding: 12px; border-radius: 12px; }
         .dark .info-item { background: #1e1e2e; }
         
-        /* Estilos do relatório e cards de membros */
-        .report-section {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark .report-section {
-            background: #181829;
-            border-color: #2d2d3f;
-        }
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .report-title { font-size: 20px; font-weight: 800; }
-        .report-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .stat-card {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-        .dark .stat-card { background: #1e1e2e; }
-        .stat-value { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 5px; }
-        .stat-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .member-report-card {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-        }
-        .dark .member-report-card { background: #1e1e2e; }
-        .member-report-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .member-avatar-large {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+        .report-section { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 20px; }
+        .dark .report-section { background: #181829; border-color: #2d2d3f; }
+        .report-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #f8fafc; border-radius: 10px; padding: 15px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: 800; }
+        
+        .day-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            flex-shrink: 0;
+            z-index: 999999;
         }
-        .member-info h4 { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
-        .member-info p { font-size: 12px; color: #64748b; }
-        .member-stats {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .mini-stat {
-            text-align: center;
-            padding: 8px;
+        .day-modal-content {
             background: white;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        .dark .mini-stat { background: #181829; border-color: #2d2d3f; }
-        .mini-stat .value { font-size: 16px; font-weight: 700; }
-        .mini-stat .label { font-size: 8px; font-weight: 600; text-transform: uppercase; color: #64748b; }
-        .task-list-compact {
-            max-height: 200px;
+            border-radius: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
             overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 10px;
+            padding: 20px;
         }
-        .dark .task-list-compact { border-color: #2d2d3f; }
-        .compact-task-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 11px;
-        }
-        .compact-task-item:last-child { border-bottom: none; }
-        .compact-task-status {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .pdf-export-btn {
-            background: #dc2626;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .pdf-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            z-index: 9999999;
-            text-align: center;
-            display: none;
-        }
-        .pdf-progress.open { display: block; }
-        .pdf-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #dc2626;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .dark .day-modal-content { background: #181829; }
+        
+        .member-table { width: 100%; border-collapse: collapse; }
+        .member-table th, .member-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .member-table th { background: #f8fafc; font-weight: 700; }
+        .dark .member-table th { background: #1e1e2e; }
+        .progress-cell { width: 100px; }
+        .progress-bar-small { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+        .progress-fill-small { height: 100%; background: #00ca72; border-radius: 3px; }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
 
-    <!-- LOGIN MODAL -->
     <div id="loginModal" class="login-modal">
         <div class="login-box">
             <h2 class="text-2xl font-black mb-2">🔐 Workspace Pro</h2>
@@ -487,7 +386,7 @@
             <div id="userList" class="max-h-64 overflow-y-auto mb-4 space-y-2"></div>
             <input type="password" id="loginPassword" placeholder="Digite sua senha" class="w-full p-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl mb-4 bg-transparent" disabled>
             <button onclick="handleLogin()" id="loginButton" class="w-full btn-primary" disabled>Entrar</button>
-            <p class="text-xs text-center text-slate-400 mt-4">Usuários: gerente (admin) • Senha: 123456</p>
+            <p class="text-xs text-center text-slate-400 mt-4">Usuários: tiagoabreu (admin) • Senha: 123456</p>
         </div>
     </div>
 
@@ -550,7 +449,6 @@
         <main class="flex-1 overflow-y-auto pb-20 md:pb-6 custom-scroll" id="view-container"></main>
     </div>
 
-    <!-- MODAIS -->
     <div id="memberModal" class="modal hidden">
         <div class="modal-content">
             <h2 class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
@@ -559,8 +457,6 @@
             <input type="text" id="memberUsername" placeholder="Usuário *" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="email" id="memberEmail" placeholder="E-mail" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
-            <input type="tel" id="memberPhone" placeholder="Telefone" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <select id="memberType" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
                 <option value="executor">Executor</option>
                 <option value="manager">Gerente</option>
@@ -589,15 +485,6 @@
         </div>
     </div>
 
-    <div id="resetPasswordModal" class="modal hidden">
-        <div class="modal-content text-center">
-            <h2 class="text-2xl font-black mb-4">🔑 Nova Senha Gerada</h2>
-            <p id="resetUserName" class="mb-2"></p>
-            <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-2xl font-mono font-bold text-monday-blue mb-4" id="newPasswordDisplay"></div>
-            <div class="flex gap-3"><button onclick="copyNewPassword()" class="flex-1 btn-primary">📋 Copiar</button><button onclick="closeResetPasswordModal()" class="flex-1 btn-outline">Fechar</button></div>
-        </div>
-    </div>
-
     <div id="userMenu" class="hidden absolute right-4 top-14 bg-white dark:bg-[#181829] border rounded-xl shadow-lg z-50 w-40">
         <button onclick="openPasswordModal()" class="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 rounded-lg">🔑 Alterar Senha</button>
         <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button>
@@ -605,36 +492,39 @@
 
     <div id="memberSidebarOverlay" class="sidebar-overlay" onclick="closeMemberSidebar()"></div>
     <div id="memberSidebar" class="member-sidebar">
-        <div class="p-6 border-b"><div class="flex items-center gap-3"><div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div><div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div><button onclick="closeMemberSidebar()" class="ml-auto text-2xl">&times;</button></div><div id="sidebarMemberInfo" class="info-grid mt-4"></div></div>
+        <div class="p-6 border-b">
+            <div class="flex items-center gap-3">
+                <div id="sidebarMemberAvatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"></div>
+                <div><h3 id="sidebarMemberName" class="font-black text-lg"></h3><p id="sidebarMemberRole" class="text-xs text-slate-400"></p></div>
+                <button onclick="closeMemberSidebar()" class="ml-auto text-2xl">&times;</button>
+            </div>
+            <div id="sidebarMemberInfo" class="info-grid mt-4"></div>
+        </div>
         <div class="p-6" id="memberSidebarContent"></div>
     </div>
 
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 transition-all duration-300 z-[9999]">Alterações salvas!</div>
     <div id="dropdownPortal"></div>
-    <div id="pdfProgress" class="pdf-progress"><div class="pdf-spinner"></div><h3 class="font-bold text-lg mb-2">Gerando PDF...</h3><p class="text-sm text-slate-400">Aguarde...</p></div>
 
     <script>
-        // ==================== ESTADO GLOBAL ====================
+        // === VERSÃO COM TIMESTAMP PARA FORÇAR RECARGA ===
+        const APP_VERSION = "2.0.1_" + Date.now();
+        console.log("Workspace Pro versão:", APP_VERSION);
+        
         let state = {
             activeView: 'home',
             boardView: 'table',
             calendarDate: new Date(),
             activeBoardId: null,
             darkMode: false,
-            searchQuery: '',
             currentUser: null,
-            selectedUserId: null,
-            tempUser: null,
-            autoSaveEnabled: true,
-            autoSaveInterval: null,
-            currentFilePath: null,
             collapsedGroups: {},
             team: [],
             boards: []
         };
 
         const STATUS_TYPES = {
-            'Nao Iniciado': { label: 'A Fazer', color: '#c4c4c4' },
+            'Nao Iniciado': { label: 'A Fazer', color: '#4b5563' },
             'Trabalhando': { label: 'Em Andamento', color: '#0073ea' },
             'Travado': { label: 'Travado', color: '#fb275d' },
             'Concluido': { label: 'Concluído', color: '#00ca72' }
@@ -647,58 +537,11 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
-        // ==================== FUNÇÕES AUXILIARES ====================
-        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-        function showToast(msg, isErr) { const t = document.getElementById('toast'); t.textContent = msg; t.style.backgroundColor = isErr ? '#ef4444' : '#1e293b'; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 3000); }
-        
-        function calculateDueDateStatus(dueDate, taskStatus) {
-            if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
-            if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
-            const today = new Date(); today.setHours(0,0,0,0);
-            const due = new Date(dueDate); due.setHours(0,0,0,0);
-            const diffDays = Math.ceil((due - today) / (1000*60*60*24));
-            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)}d` };
-            if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
-            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays}d` };
-            return { status: 'ok', class: 'status-tag-ok', label: 'Em dia' };
-        }
-        
-        function calculateProjectProgress(board) {
-            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            if (!tasks.length) return 0;
-            return Math.round((tasks.filter(t => t.status === 'Concluido').length / tasks.length) * 100);
-        }
-        function isProjectCompleted(board) {
-            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
-            return tasks.length && tasks.every(t => t.status === 'Concluido');
-        }
-
-        // ==================== PERSISTÊNCIA (MongoDB + localStorage) ====================
-        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {} }
-        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {} }
-        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) {} }
-        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {} }
-        
-        async function carregarDadosMongo() {
-            try {
-                const response = await fetch('/api/dados');
-                const data = await response.json();
-                if (data.team && data.team.length) state.team = data.team;
-                if (data.boards && data.boards.length) state.boards = data.boards;
-                document.getElementById('networkMode').innerHTML = '🌐 MongoDB Online';
-                return true;
-            } catch (error) {
-                console.log('MongoDB offline, usando localStorage');
-                document.getElementById('networkMode').innerHTML = '📁 LocalStorage';
-                return false;
-            }
-        }
-        
         async function saveToLocalStorage() {
             const data = { team: state.team, boards: state.boards, currentUser: state.currentUser, darkMode: state.darkMode };
             localStorage.setItem('workspace_pro_data', JSON.stringify(data));
         }
-        
+
         function loadFromLocalStorage() {
             const saved = localStorage.getItem('workspace_pro_data');
             if (saved) {
@@ -711,58 +554,56 @@
                 } catch(e) {}
             }
         }
-        
+
+        async function carregarDadosMongo() {
+            try {
+                const response = await fetch('/api/dados');
+                const data = await response.json();
+                if (data.team && data.team.length) state.team = data.team;
+                if (data.boards && data.boards.length) state.boards = data.boards;
+                console.log('Dados carregados do MongoDB');
+                return true;
+            } catch (error) {
+                console.log('MongoDB offline, usando localStorage');
+                return false;
+            }
+        }
+
+        async function salvarEquipe() { try { await fetch('/api/equipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ team: state.team }) }); } catch(e) {} }
+        async function salvarBoards() { try { await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ boards: state.boards }) }); } catch(e) {} }
+        async function salvarBoard(b) { try { await fetch('/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); } catch(e) {} }
+        async function deletarBoard(id) { try { await fetch(`/api/board/${id}`, { method: 'DELETE' }); } catch(e) {} }
+
         async function fullSave() {
             await saveToLocalStorage();
             await Promise.all([salvarEquipe(), salvarBoards()]);
         }
-        
-        function openDatabaseFile() {
-            const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                try {
-                    const text = await file.text();
-                    const imported = JSON.parse(text);
-                    if (imported.team && imported.boards) {
-                        state.team = imported.team; state.boards = imported.boards;
-                        await fullSave(); renderUserList(); render(); renderSidebar();
-                        showToast('✅ Banco carregado');
-                    }
-                } catch(e) { showToast('❌ Erro', true); }
-            };
-            input.click();
+
+        function showToast(msg, isErr=false) { const t = document.getElementById('toast'); t.textContent = msg; t.style.backgroundColor = isErr ? '#ef4444' : '#1e293b'; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 3000); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        function calculateDueDateStatus(dueDate, taskStatus) {
+            if (taskStatus === 'Concluido') return { status: 'concluido', class: 'status-tag-ok', label: 'Concluído' };
+            if (!dueDate) return { status: 'Sem Data', class: '', label: 'Sem Data' };
+            const today = new Date(); today.setHours(0,0,0,0);
+            const due = new Date(dueDate); due.setHours(0,0,0,0);
+            const diffDays = Math.ceil((due - today) / (1000*60*60*24));
+            if (diffDays < 0) return { status: 'overdue', class: 'status-tag-overdue', label: `Atrasado ${Math.abs(diffDays)}d` };
+            if (diffDays === 0) return { status: 'today', class: 'status-tag-today', label: 'Vence hoje' };
+            if (diffDays <= 7) return { status: 'week', class: 'status-tag-week', label: `Vence em ${diffDays}d` };
+            return { status: 'ok', class: '', label: 'Em dia' };
         }
-        
-        function saveDatabaseFile() {
-            const dataStr = JSON.stringify({ team: state.team, boards: state.boards }, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
-            a.href = url; a.click(); URL.revokeObjectURL(url);
-            showToast('✅ Dados exportados');
+
+        function calculateProjectProgress(board) {
+            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            if (!tasks.length) return 0;
+            return Math.round((tasks.filter(t => t.status === 'Concluido').length / tasks.length) * 100);
         }
-        
-        function exportJSON() { saveDatabaseFile(); }
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (imported.team && imported.boards) {
-                        state.team = imported.team; state.boards = imported.boards;
-                        await fullSave(); renderUserList(); render(); renderSidebar();
-                        showToast('✅ Importado');
-                    }
-                } catch(e) { showToast('❌ Erro', true); }
-            };
-            reader.readAsText(file);
+        function isProjectCompleted(board) { 
+            const tasks = board.groups?.flatMap(g => g.tasks || []) || [];
+            return tasks.length > 0 && tasks.every(t => t.status === 'Concluido');
         }
-        
+
         // ==================== LOGIN ====================
         function renderUserList() {
             const list = document.getElementById('userList');
@@ -771,7 +612,6 @@
                 <div class="user-item ${state.selectedUserId === u.id ? 'selected' : ''}" onclick="selectUser('${u.id}')">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${u.color}">${u.name.charAt(0)}</div>
                     <div><div class="font-bold">${escapeHtml(u.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(u.username)}</div></div>
-                    ${u.firstAccess ? '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded">🆕</span>' : ''}
                 </div>
             `).join('');
         }
@@ -781,24 +621,23 @@
             const user = state.team.find(u => u.id === state.selectedUserId);
             if (!user) { alert('Selecione um usuário'); return; }
             if (btoa(pwd) === user.password) {
-                if (user.firstAccess) { state.tempUser = user; document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('loginModal').style.display = 'none'; }
-                else { completeLogin(user); }
+                state.currentUser = user;
+                fullSave();
+                document.getElementById('currentUserAvatar').style.background = user.color;
+                document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
+                document.getElementById('currentUserName').textContent = user.name;
+                document.getElementById('loginModal').style.display = 'none';
+                updateUIBasedOnPermissions();
+                render(); renderSidebar();
+                showToast(`Bem-vindo, ${user.name}!`);
             } else { alert('Senha incorreta'); }
         }
-        function completeLogin(user) {
-            state.currentUser = user;
-            document.getElementById('currentUserAvatar').style.background = user.color;
-            document.getElementById('currentUserAvatar').textContent = user.name.charAt(0);
-            document.getElementById('currentUserName').textContent = user.name;
-            document.getElementById('currentUserRole').textContent = user.type === 'manager' ? 'Gerente' : 'Executor';
-            document.getElementById('loginModal').style.display = 'none';
-            updateUIBasedOnPermissions();
-            render(); renderSidebar();
-            showToast(`Bem-vindo, ${user.name}!`);
-        }
+        function logout() { state.currentUser = null; fullSave(); document.getElementById('loginModal').style.display = 'flex'; renderUserList(); render(); }
+        function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('hidden'); }
+        document.addEventListener('click', (e) => { const menu = document.getElementById('userMenu'); const ind = document.getElementById('currentUserIndicator'); if (!ind?.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden'); });
         function openPasswordModal() { document.getElementById('userMenu').classList.add('hidden'); document.getElementById('passwordModal').classList.remove('hidden'); }
         function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
-        async function alterarSenha() {
+        function alterarSenha() {
             const atual = document.getElementById('senhaAtual').value;
             const nova = document.getElementById('senhaNova').value;
             const conf = document.getElementById('senhaConfirmar').value;
@@ -808,74 +647,39 @@
             if (nova.length < 4) { alert('Mínimo 4 caracteres'); return; }
             state.currentUser.password = btoa(nova);
             const usuario = state.team.find(u => u.id === state.currentUser.id);
-            if (usuario) { usuario.password = btoa(nova); usuario.firstAccess = false; }
-            await fullSave();
+            if (usuario) usuario.password = btoa(nova);
+            fullSave();
             closePasswordModal();
             alert('Senha alterada!');
         }
-        function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('hidden'); }
-        function logout() { state.currentUser = null; fullSave(); document.getElementById('loginModal').style.display = 'flex'; renderUserList(); render(); }
-        document.addEventListener('click', (e) => { const menu = document.getElementById('userMenu'); const ind = document.getElementById('currentUserIndicator'); if (!ind?.contains(e.target) && menu && !menu.contains(e.target)) menu.classList.add('hidden'); });
-        
+
         // ==================== PERMISSÕES ====================
         function isCurrentUserManager() { return state.currentUser?.type === 'manager'; }
         function updateUIBasedOnPermissions() {
             const isMgr = isCurrentUserManager();
-            document.getElementById('newBoardBtn').style.display = isMgr ? 'block' : 'none';
-            document.getElementById('addMemberBtn').style.display = isMgr ? 'block' : 'none';
+            const newBtn = document.getElementById('newBoardBtn');
+            if(newBtn) newBtn.style.display = isMgr ? 'block' : 'none';
+            const addBtn = document.getElementById('addMemberBtn');
+            if(addBtn) addBtn.style.display = isMgr ? 'block' : 'none';
         }
         function canEditTask(t) { if (!state.currentUser) return false; if (state.currentUser.type === 'manager') return true; return state.currentUser.type === 'executor' && t.ownerId === state.currentUser.id; }
         function filterTasksByUser(tasks) { if (!state.currentUser) return []; if (state.currentUser.type === 'manager') return tasks; return tasks.filter(t => t.ownerId === state.currentUser.id); }
-        
-        // ==================== MEMBROS (cards, edição corrigida) ====================
+
+        // ==================== MEMBROS ====================
         function openAddMemberModal() { document.getElementById('memberModal').classList.remove('hidden'); }
         function closeMemberModal() { document.getElementById('memberModal').classList.add('hidden'); }
-        async function saveMember() {
-            const id = document.getElementById('memberId').value;
+        function saveMember() {
             const name = document.getElementById('memberName').value.trim();
             const username = document.getElementById('memberUsername').value.trim();
             const pwd = document.getElementById('memberPassword').value;
             const role = document.getElementById('memberRole').value;
-            const email = document.getElementById('memberEmail').value;
-            const phone = document.getElementById('memberPhone').value;
             const type = document.getElementById('memberType').value;
             if (!name || !username) { alert('Preencha nome e usuário'); return; }
-            
-            if (id) {
-                // EDIÇÃO
-                const member = state.team.find(m => m.id === id);
-                if (!member) { alert('Membro não encontrado'); return; }
-                if (state.team.some(m => m.id !== id && m.username === username)) { alert('Nome de usuário já existe'); return; }
-                member.name = name;
-                member.username = username;
-                if (pwd) { member.password = btoa(pwd); member.firstAccess = true; }
-                member.role = role;
-                member.email = email;
-                member.phone = phone;
-                member.cargo = role;
-                member.type = type;
-                showToast(`✅ Membro ${name} atualizado`);
-            } else {
-                // ADIÇÃO
-                if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
-                const newMember = {
-                    id: 'm' + Date.now(),
-                    username, name,
-                    password: btoa(pwd || '123456'),
-                    color: '#' + Math.floor(Math.random()*16777215).toString(16),
-                    role, email, phone, cargo: role, type,
-                    firstAccess: true
-                };
-                state.team.push(newMember);
-                showToast(`✅ Membro ${name} adicionado`);
-            }
-            await fullSave();
-            closeMemberModal();
-            renderUserList();
-            renderSidebar();
-            render();
+            if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
+            state.team.push({ id: 'm' + Date.now(), username, name, password: btoa(pwd || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role, type, firstAccess: false });
+            fullSave(); closeMemberModal(); renderUserList(); renderSidebar(); render();
+            showToast(`✅ Membro ${name} adicionado`);
         }
-        
         function deleteMember(id) {
             if (!isCurrentUserManager()) return;
             if (state.team.length <= 1) return alert("Mínimo um membro");
@@ -888,39 +692,7 @@
             fullSave(); renderUserList(); renderSidebar(); render();
             showToast(`✅ Membro removido`);
         }
-        
-        function openEditMemberModal(id) {
-            const m = state.team.find(u => u.id === id);
-            if (!m) return;
-            document.getElementById('memberId').value = m.id;
-            document.getElementById('memberName').value = m.name;
-            document.getElementById('memberUsername').value = m.username;
-            document.getElementById('memberPassword').value = '';
-            document.getElementById('memberRole').value = m.role || '';
-            document.getElementById('memberEmail').value = m.email || '';
-            document.getElementById('memberPhone').value = m.phone || '';
-            document.getElementById('memberType').value = m.type;
-            document.getElementById('memberModal').classList.remove('hidden');
-        }
-        
-        let currentResetPassword = '';
-        function resetUserPassword(userId) {
-            const user = state.team.find(u => u.id === userId);
-            if (!user) return;
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$';
-            let newPass = '';
-            for (let i = 0; i < 8; i++) newPass += chars.charAt(Math.floor(Math.random() * chars.length));
-            user.password = btoa(newPass);
-            user.firstAccess = true;
-            currentResetPassword = newPass;
-            document.getElementById('resetUserName').innerHTML = `Nova senha para: ${user.name}`;
-            document.getElementById('newPasswordDisplay').innerHTML = newPass;
-            document.getElementById('resetPasswordModal').classList.remove('hidden');
-            fullSave();
-        }
-        function copyNewPassword() { navigator.clipboard.writeText(currentResetPassword); showToast('Senha copiada!'); }
-        function closeResetPasswordModal() { document.getElementById('resetPasswordModal').classList.add('hidden'); }
-        
+
         // ==================== SIDEBAR ====================
         function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
         function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobileOverlay').classList.remove('open'); }
@@ -940,26 +712,54 @@
             document.getElementById('sidebar-team').innerHTML = state.team.map(m => `<div onclick="openMemberSidebar('${m.id}')" class="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white cursor-pointer hover:scale-110" style="background: ${m.color}">${m.name.charAt(0)}</div>`).join('');
         }
         
-        function openMemberSidebar(id) {
+        async function openMemberSidebar(id) {
             const member = state.team.find(u => u.id === id);
             if (!member) return;
             document.getElementById('sidebarMemberAvatar').style.background = member.color;
             document.getElementById('sidebarMemberAvatar').innerHTML = member.name.charAt(0);
             document.getElementById('sidebarMemberName').innerText = member.name;
             document.getElementById('sidebarMemberRole').innerText = member.role || 'Membro';
-            const tasks = [];
-            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (t.ownerId === id) tasks.push({ ...t, boardName: b.name, groupName: g.name }); }); }); });
-            const total = tasks.length, concluidas = tasks.filter(t=>t.status==='Concluido').length;
-            const atrasadas = tasks.filter(t=>t.status!=='Concluido' && t.timeline?.[1] && t.timeline[1] < new Date().toISOString().split('T')[0]).length;
+            
+            let tarefas = [];
+            state.boards.forEach(board => {
+                board.groups?.forEach(group => {
+                    group.tasks?.forEach(task => {
+                        if (task.ownerId === member.id) {
+                            tarefas.push({ ...task, boardName: board.name, groupName: group.name });
+                        }
+                    });
+                });
+            });
+            const total = tarefas.length;
+            const concluidas = tarefas.filter(t => t.status === 'Concluido').length;
+            const atrasadas = tarefas.filter(t => t.status !== 'Concluido' && t.timeline?.[1] && t.timeline[1] < new Date().toISOString().split('T')[0]).length;
             const hoje = new Date().toISOString().split('T')[0];
-            const venceHoje = tasks.filter(t=>t.status!=='Concluido' && t.timeline?.[1] === hoje).length;
-            document.getElementById('sidebarMemberInfo').innerHTML = `<div class="info-item"><div class="text-xl font-bold">${total}</div><div class="text-xs">Tarefas</div></div><div class="info-item"><div class="text-xl font-bold text-green-600">${concluidas}</div><div class="text-xs">Concluídas</div></div><div class="info-item"><div class="text-xl font-bold text-red-500">${atrasadas}</div><div class="text-xs">Atrasadas</div></div><div class="info-item"><div class="text-xl font-bold text-orange-500">${venceHoje}</div><div class="text-xs">Vencem hoje</div></div>`;
-            document.getElementById('memberSidebarContent').innerHTML = `<h4 class="font-bold mb-3">📋 Tarefas</h4><div class="space-y-3 max-h-[400px] overflow-y-auto">${tasks.length ? tasks.map(t => `<div class="border rounded-lg p-3"><div class="font-semibold">${escapeHtml(t.title)}</div><div class="text-xs text-slate-400">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div><div class="flex justify-between mt-2"><span class="status-trigger text-xs py-0.5 px-2" style="background:${STATUS_TYPES[t.status]?.color}">${STATUS_TYPES[t.status]?.label}</span><span class="text-xs">Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</span></div></div>`).join('') : '<p class="text-slate-400 text-sm">Nenhuma tarefa atribuída.</p>'}</div>`;
+            const venceHoje = tarefas.filter(t => t.status !== 'Concluido' && t.timeline?.[1] === hoje).length;
+            
+            document.getElementById('sidebarMemberInfo').innerHTML = `
+                <div class="info-item"><div class="text-xl font-bold">${total}</div><div class="text-xs">Tarefas</div></div>
+                <div class="info-item"><div class="text-xl font-bold text-green-600">${concluidas}</div><div class="text-xs">Concluídas</div></div>
+                <div class="info-item"><div class="text-xl font-bold text-red-500">${atrasadas}</div><div class="text-xs">Atrasadas</div></div>
+                <div class="info-item"><div class="text-xl font-bold text-orange-500">${venceHoje}</div><div class="text-xs">Vencem hoje</div></div>
+            `;
+            
+            document.getElementById('memberSidebarContent').innerHTML = `
+                <h4 class="font-bold mb-3">📋 Tarefas</h4>
+                <div class="space-y-3 max-h-[400px] overflow-y-auto">
+                    ${tarefas.length ? tarefas.map(t => `
+                        <div class="border rounded-lg p-3">
+                            <div class="font-semibold">${escapeHtml(t.title)}</div>
+                            <div class="text-xs text-slate-400">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div>
+                            <div class="flex justify-between mt-2"><span class="status-trigger text-xs py-0.5 px-2" style="background:${STATUS_TYPES[t.status]?.color}">${STATUS_TYPES[t.status]?.label}</span><span class="text-xs">Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</span></div>
+                        </div>
+                    `).join('') : '<p class="text-slate-400 text-sm">Nenhuma tarefa atribuída.</p>'}
+                </div>
+            `;
             document.getElementById('memberSidebar').classList.add('open');
             document.getElementById('memberSidebarOverlay').classList.add('open');
         }
         function closeMemberSidebar() { document.getElementById('memberSidebar').classList.remove('open'); document.getElementById('memberSidebarOverlay').classList.remove('open'); }
-        
+
         // ==================== RENDER PRINCIPAL ====================
         function render() {
             if (!state.currentUser) return;
@@ -991,221 +791,57 @@
         function renderTeamView() {
             if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
             document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto p-6">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-black">👥 Equipe</h2>
-                        <button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Adicionar Membro</button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        ${state.team.map(m => {
-                            const tasks = [];
-                            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (t.ownerId === m.id) tasks.push(t); }); }); });
-                            const dueStatus = tasks.map(t => calculateDueDateStatus(t.timeline?.[1], t.status));
-                            const overdue = dueStatus.filter(s => s.status === 'overdue').length;
-                            const today = dueStatus.filter(s => s.status === 'today').length;
-                            const week = dueStatus.filter(s => s.status === 'week').length;
-                            return `
-                                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all">
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg flex-shrink-0" style="background: ${m.color}">${m.name.charAt(0)}</div>
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <h3 class="font-bold text-lg">${escapeHtml(m.name)}</h3>
-                                                <span class="text-[10px] font-bold px-2 py-1 rounded ${m.type === 'manager' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}">${m.type === 'manager' ? '👑 Gerente' : '⚡ Executor'}</span>
-                                            </div>
-                                            <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">@${escapeHtml(m.username)}</p>
-                                            <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
-                                                ${m.cargo ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Cargo</span><p class="font-medium">${escapeHtml(m.cargo)}</p></div>` : ''}
-                                                ${m.email ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Email</span><p class="font-medium truncate">${escapeHtml(m.email)}</p></div>` : ''}
-                                                ${m.phone ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Telefone</span><p class="font-medium">${escapeHtml(m.phone)}</p></div>` : ''}
-                                            </div>
-                                            <div class="flex gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                <div class="text-center"><div class="text-xl font-black ${overdue > 0 ? 'text-red-500' : 'text-slate-400'}">${overdue}</div><div class="text-[8px] font-bold uppercase text-slate-400">Atrasados</div></div>
-                                                <div class="text-center"><div class="text-xl font-black ${today > 0 ? 'text-orange-500' : 'text-slate-400'}">${today}</div><div class="text-[8px] font-bold uppercase text-slate-400">Hoje</div></div>
-                                                <div class="text-center"><div class="text-xl font-black ${week > 0 ? 'text-blue-500' : 'text-slate-400'}">${week}</div><div class="text-[8px] font-bold uppercase text-slate-400">7 Dias</div></div>
-                                            </div>
-                                            <div class="flex gap-2 mt-4">
-                                                <button onclick="openEditMemberModal('${m.id}')" class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600">✏️ Editar</button>
-                                                <button onclick="resetUserPassword('${m.id}')" class="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600">🔑 Resetar Senha</button>
-                                                ${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-xs bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600">🗑️ Remover</button>` : ''}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // ==================== RELATÓRIOS COMPLETOS (como no script enviado) ====================
-        function renderReports() {
-            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
-            let totalTasks = 0, completedTasks = 0, overdueTasks = 0;
-            const tasksByMember = {};
-            state.team.forEach(m => { tasksByMember[m.id] = { ...m, tasks: [], total: 0, completed: 0, overdue: 0, today: 0, week: 0, byStatus: { 'Nao Iniciado':0, 'Trabalhando':0, 'Travado':0, 'Concluido':0 } }; });
-            state.boards.forEach(board => {
-                board.groups.forEach(group => {
-                    group.tasks.forEach(task => {
-                        totalTasks++;
-                        if (task.status === 'Concluido') completedTasks++;
-                        const dueStatus = calculateDueDateStatus(task.timeline?.[1], task.status);
-                        if (dueStatus.status === 'overdue' && task.status !== 'Concluido') overdueTasks++;
-                        const member = tasksByMember[task.ownerId];
-                        if (member) {
-                            member.tasks.push({ ...task, boardName: board.name, groupName: group.name, groupColor: group.color });
-                            member.total++;
-                            if (task.status === 'Concluido') member.completed++;
-                            if (dueStatus.status === 'overdue' && task.status !== 'Concluido') member.overdue++;
-                            if (dueStatus.status === 'today' && task.status !== 'Concluido') member.today++;
-                            if (dueStatus.status === 'week' && task.status !== 'Concluido') member.week++;
-                            member.byStatus[task.status]++;
-                        }
-                    });
-                });
-            });
-            const sortedMembers = Object.values(tasksByMember).sort((a,b) => b.total - a.total);
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto py-8">
-                    <div class="flex justify-between items-center mb-8">
-                        <div><h2 class="text-3xl font-black mb-2">📈 Relatórios por Membro</h2><p class="text-slate-500 dark:text-slate-400">Análise detalhada do desempenho individual</p></div>
-                        <button onclick="exportReportToPDF()" class="pdf-export-btn" id="pdfExportBtn"><span>📄</span><span>Exportar PDF (A4)</span></button>
-                    </div>
-                    <div class="report-section" id="reportGeneralStats">
-                        <div class="report-header"><h3 class="report-title">📊 Estatísticas Gerais</h3><span class="text-sm font-bold text-slate-400">${state.boards.length} Projetos</span></div>
-                        <div class="report-stats-grid">
-                            <div class="stat-card"><div class="stat-value text-blue-500">${totalTasks}</div><div class="stat-label">Total de Tarefas</div></div>
-                            <div class="stat-card"><div class="stat-value text-green-500">${completedTasks}</div><div class="stat-label">Concluídas</div></div>
-                            <div class="stat-card"><div class="stat-value text-red-500">${overdueTasks}</div><div class="stat-label">Atrasadas</div></div>
-                            <div class="stat-card"><div class="stat-value text-orange-500">${totalTasks - completedTasks}</div><div class="stat-label">Pendentes</div></div>
+                <div class="max-w-4xl mx-auto p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black">👥 Equipe</h2><button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm">+ Adicionar</button></div>
+                    <div class="space-y-3">${state.team.map(m => `
+                        <div class="bg-white dark:bg-[#181829] p-4 rounded-xl border flex justify-between items-center">
+                            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div><div><div class="font-bold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div><span class="text-[10px] px-2 py-0.5 rounded-full ${m.type === 'manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${m.type === 'manager' ? 'Admin' : 'Usuário'}</span></div></div>
+                            <div class="flex gap-2"><button onclick="openEditMemberModal('${m.id}')" class="text-blue-500 text-xl">✏️</button>${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-red-500 text-xl">🗑️</button>` : ''}</div>
                         </div>
-                        <div class="grid grid-cols-4 gap-4 mt-4">
-                            ${Object.entries(STATUS_TYPES).map(([k,info]) => `<div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full" style="background:${info.color}"></span><span>${info.label}: ${Object.values(tasksByMember).reduce((acc,m)=>acc+m.byStatus[k],0)}</span></div>`).join('')}
-                        </div>
-                    </div>
-                    <h3 class="text-xl font-black mt-8 mb-4">👥 Desempenho Individual</h3>
-                    <div id="reportMembers">
-                        ${sortedMembers.map(member => {
-                            const completionRate = member.total ? Math.round((member.completed/member.total)*100) : 0;
-                            return `
-                                <div class="member-report-card">
-                                    <div class="member-report-header">
-                                        <div class="member-avatar-large" style="background:${member.color}">${member.name.charAt(0)}</div>
-                                        <div class="member-info"><h4>${escapeHtml(member.name)}</h4><p>@${escapeHtml(member.username)} • ${member.role || 'Membro'}</p></div>
-                                        <div class="ml-auto text-right"><span class="text-[10px] font-bold px-2 py-1 rounded ${member.type==='manager'?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}">${member.type==='manager'?'👑 Gerente':'⚡ Executor'}</span></div>
-                                    </div>
-                                    <div class="member-stats">
-                                        <div class="mini-stat"><div class="value text-blue-600">${member.total}</div><div class="label">Total</div></div>
-                                        <div class="mini-stat"><div class="value text-green-600">${member.completed}</div><div class="label">Concluídas</div></div>
-                                        <div class="mini-stat"><div class="value text-red-600">${member.overdue}</div><div class="label">Atrasadas</div></div>
-                                        <div class="mini-stat"><div class="value text-orange-600">${member.today}</div><div class="label">Vence Hoje</div></div>
-                                        <div class="mini-stat"><div class="value text-purple-600">${completionRate}%</div><div class="label">Eficiência</div></div>
-                                    </div>
-                                    <div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="font-bold">Progresso Geral</span><span class="font-bold text-monday-blue">${completionRate}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${completionRate}%"></div></div></div>
-                                    <div class="flex gap-4 mb-3 text-xs">${Object.entries(STATUS_TYPES).map(([k,info]) => `<div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:${info.color}"></span><span>${info.label}: ${member.byStatus[k]}</span></div>`).join('')}</div>
-                                    <div><details class="text-sm"><summary class="cursor-pointer font-bold text-monday-blue mb-2">📋 Ver Tarefas de ${escapeHtml(member.name)} (${member.tasks.length})</summary><div class="task-list-compact mt-2">${member.tasks.map(t => { const ds = calculateDueDateStatus(t.timeline?.[1], t.status); return `<div class="compact-task-item"><span class="compact-task-status" style="background:${STATUS_TYPES[t.status]?.color}"></span><span class="flex-1">${escapeHtml(t.title)}</span><span class="text-slate-400 text-[9px]">${t.boardName} / ${t.groupName}</span><span class="${ds.class} text-[9px] px-2 py-0.5 rounded">${ds.label}</span></div>`; }).join('')}${member.tasks.length===0?'<div class="text-center text-slate-400 py-2">Nenhuma tarefa atribuída</div>':''}</div></details></div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
+                    `).join('')}</div>
+                </div>`;
         }
         
-        async function exportReportToPDF() {
-            const btn = document.getElementById('pdfExportBtn');
-            const progress = document.getElementById('pdfProgress');
-            if (!btn || !progress) return;
-            try {
-                btn.disabled = true;
-                progress.classList.add('open');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const reportElement = document.getElementById('view-container');
-                const reportSections = reportElement.querySelectorAll('.report-section, #reportMembers .member-report-card');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                let currentPage = 1;
-                for (let i = 0; i < reportSections.length; i++) {
-                    const section = reportSections[i];
-                    const clone = section.cloneNode(true);
-                    clone.style.width = '700px';
-                    clone.style.padding = '20px';
-                    clone.style.background = 'white';
-                    clone.style.color = '#1e293b';
-                    clone.querySelectorAll('button, details, summary').forEach(el => el.style.display = 'none');
-                    const tempDiv = document.createElement('div');
-                    tempDiv.style.position = 'absolute';
-                    tempDiv.style.left = '-9999px';
-                    tempDiv.style.top = '0';
-                    tempDiv.appendChild(clone);
-                    document.body.appendChild(tempDiv);
-                    try {
-                        const canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', logging: false, windowWidth: 800 });
-                        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                        const imgWidth = pageWidth - 20;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        if (i > 0) pdf.addPage();
-                        pdf.setFontSize(10);
-                        pdf.setTextColor(100, 116, 139);
-                        pdf.text('Workspace Pro - Relatório de Desempenho', 10, 10);
-                        pdf.text(`Página ${currentPage}`, pageWidth - 30, 10);
-                        pdf.setDrawColor(226, 232, 240);
-                        pdf.line(10, 15, pageWidth - 10, 15);
-                        pdf.addImage(imgData, 'JPEG', 10, 20, imgWidth, imgHeight);
-                        pdf.setFontSize(8);
-                        pdf.setTextColor(148, 163, 184);
-                        pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 10, pageHeight - 5);
-                        currentPage++;
-                    } finally {
-                        document.body.removeChild(tempDiv);
-                    }
-                }
-                pdf.save(`relatorio_equipe_${new Date().toISOString().split('T')[0]}.pdf`);
-                showToast('✅ PDF exportado!');
-            } catch (error) { showToast('❌ Erro ao gerar PDF', true); } finally { btn.disabled = false; progress.classList.remove('open'); }
+        function openEditMemberModal(id) {
+            const m = state.team.find(u => u.id === id);
+            if (!m) return;
+            document.getElementById('memberId').value = m.id;
+            document.getElementById('memberName').value = m.name;
+            document.getElementById('memberUsername').value = m.username;
+            document.getElementById('memberPassword').value = '';
+            document.getElementById('memberRole').value = m.role || '';
+            document.getElementById('memberType').value = m.type;
+            document.getElementById('memberModal').classList.remove('hidden');
         }
-        
-        // ==================== DASHBOARD ====================
-        function renderDashboard() {
-            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
-            let statusCounts = { 'Nao Iniciado':0, 'Trabalhando':0, 'Travado':0, 'Concluido':0 };
-            let teamTask = {};
-            state.team.forEach(m => teamTask[m.id] = { name: m.name, count: 0, overdue: 0 });
-            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; if (teamTask[t.ownerId]) { teamTask[t.ownerId].count++; const ds = calculateDueDateStatus(t.timeline?.[1], t.status); if (ds.status === 'overdue' && t.status !== 'Concluido') teamTask[t.ownerId].overdue++; } }); }); });
-            const total = Object.values(statusCounts).reduce((a,b)=>a+b,0);
-            const perc = total ? Math.round((statusCounts['Concluido']/total)*100) : 0;
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto p-6"><h2 class="text-3xl font-black mb-8">📊 Dashboard</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Status Global</h3><canvas id="statusChart" height="200"></canvas></div>
-                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border flex flex-col items-center"><h3 class="font-bold mb-4">Eficiência Geral</h3><div class="relative w-40 h-40"><svg class="w-full h-full -rotate-90"><circle cx="80" cy="80" r="70" stroke="#e2e8f0" stroke-width="12" fill="none"/><circle id="progress-circle" cx="80" cy="80" r="70" stroke="#0073ea" stroke-width="12" fill="none" stroke-dasharray="439.8" stroke-dashoffset="${439.8 - (perc/100)*439.8}" style="transition: stroke-dashoffset 1s"/></svg><div class="absolute inset-0 flex items-center justify-center text-2xl font-black">${perc}%</div></div></div></div>
-                <div class="mt-6 bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Carga por Membro</h3><canvas id="teamChart" height="200"></canvas></div></div>`;
-            setTimeout(() => {
-                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
-                if(ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: Object.keys(STATUS_TYPES).map(k=>statusCounts[k]||0), backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
-                const ctx2 = document.getElementById('teamChart')?.getContext('2d');
-                if(ctx2) new Chart(ctx2, { type: 'bar', data: { labels: Object.values(teamTask).map(t=>t.name), datasets: [{ label: 'Tarefas', data: Object.values(teamTask).map(t=>t.count), backgroundColor: '#0073ea' }, { label: 'Atrasadas', data: Object.values(teamTask).map(t=>t.overdue), backgroundColor: '#fb275d' }] } });
-            }, 100);
-        }
-        
-        // ==================== FUNÇÕES DO BOARD ====================
+
+        // ==================== BOARD ====================
         function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; renderBoardView(); }
+        
         function renderBoardView() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) { renderHome(); return; }
-            document.getElementById('view-container').innerHTML = `<div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black inline-flex items-center gap-2">${escapeHtml(board.name)} <button onclick="editBoardName()" class="text-sm bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">✏️</button></h2>${isCurrentUserManager() ? `<button onclick="addNewGroup()" class="ml-auto bg-monday-blue text-white px-3 py-1 rounded-full text-xs">+ Grupo</button>` : ''}</div>
-            <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
-            <div id="board-content"></div></div>`;
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black inline-flex items-center gap-2">${escapeHtml(board.name)} <button onclick="editBoardName()" class="text-sm bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">✏️</button></h2>${isCurrentUserManager() ? `<button onclick="addNewGroup()" class="ml-auto bg-monday-blue text-white px-3 py-1 rounded-full text-xs">+ Grupo</button>` : ''}</div>
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
+                <div id="board-content"></div></div>`;
             setBoardView(state.boardView);
         }
+        
         function editBoardName() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) return;
             const newName = prompt("Novo nome do projeto:", board.name);
-            if (newName && newName.trim()) { board.name = newName.trim(); fullSave(); renderBoardView(); renderSidebar(); showToast("Nome atualizado"); }
+            if (newName && newName.trim()) {
+                board.name = newName.trim();
+                fullSave();
+                renderBoardView();
+                renderSidebar();
+                showToast("Nome atualizado");
+            }
         }
+        
         function setBoardView(view) { state.boardView = view; renderBoardContent(); }
+        
         function renderBoardContent() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) return;
@@ -1216,6 +852,7 @@
             else if (state.boardView === 'gantt') container.innerHTML = renderGantt(board);
             else if (state.boardView === 'calendar') container.innerHTML = renderCalendar(board);
         }
+        
         function renderTable(board) {
             const isManager = isCurrentUserManager();
             return `<div class="space-y-6">${board.groups?.map((g, gIdx) => {
@@ -1242,30 +879,50 @@
                 }).join('')}</tbody> </table></div>${isManager ? `<div class="p-3 border-t"><button onclick="addNewTask('${g.id}')" class="text-monday-blue text-sm">+ Adicionar tarefa</button></div>` : ''}</div></div>`;
             }).join('')}</div>`;
         }
+        
         function renderKanban(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color, groupId: g.id}))) || [];
             const filtered = filterTasksByUser(tasks);
             return `<div class="flex gap-4 overflow-x-auto pb-4">${Object.entries(STATUS_TYPES).map(([key,info]) => `<div class="min-w-[280px] bg-slate-50 dark:bg-slate-800/30 rounded-xl p-3"><div class="flex justify-between mb-3"><h3 class="font-bold">${info.label}</h3><span class="text-xs text-slate-400">${filtered.filter(t=>t.status===key).length}</span></div><div class="space-y-2">${filtered.filter(t=>t.status===key).map(t => `<div class="bg-white dark:bg-[#181829] p-3 rounded-lg shadow-sm cursor-pointer" onclick="showTaskDetail('${t.id}')"><div class="font-bold text-sm">${escapeHtml(t.title)}</div><div class="text-[10px] text-slate-400 mt-1">📁 ${escapeHtml(t.groupName)}</div><div class="flex justify-between mt-2 text-xs"><span class="priority-badge" style="background:${PRIORITY_TYPES[t.priority]?.color}20; color:${PRIORITY_TYPES[t.priority]?.color}">${t.priority}</span><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${state.team.find(m=>m.id===t.ownerId)?.color}">${state.team.find(m=>m.id===t.ownerId)?.name?.charAt(0)}</div></div>${canEditTask(t) ? `<div class="mt-2"><div class="status-trigger text-xs py-1 px-2" style="background:${info.color}" onclick='event.stopPropagation();showStatusDropdown(this, "${t.groupId}", "${t.id}")'>${info.label} ▼</div></div>` : ''}</div>`).join('')}</div></div>`).join('')}</div>`;
         }
+        
         function renderGantt(board) {
-            const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name}))) || [];
-            if (!tasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa com datas definidas</div>';
+            if (!board.groups?.length) return '<div class="p-8 text-center text-slate-400">Nenhum grupo criado</div>';
+            const allTasks = [];
+            board.groups.forEach(group => {
+                (group.tasks || []).forEach(t => {
+                    if (t.timeline?.[0] && t.timeline?.[1])
+                        allTasks.push({ ...t, groupName: group.name, groupColor: group.color });
+                });
+            });
+            if (!allTasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa com datas definidas</div>';
+            
             const today = new Date(); today.setHours(0,0,0,0);
-            const dates = tasks.flatMap(t => t.timeline || []).filter(d=>d).map(d=>new Date(d));
+            const dates = allTasks.flatMap(t => t.timeline.map(d => new Date(d)));
             const start = new Date(Math.min(...dates.map(d=>d.getTime()), today.getTime()));
             start.setDate(start.getDate() - 5);
             const end = new Date(Math.max(...dates.map(d=>d.getTime()), today.getTime()));
             end.setDate(end.getDate() + 30);
             const days = []; let cur = new Date(start);
             while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-            return `<div class="gantt-container"><div class="flex border-b sticky top-0 bg-white dark:bg-[#181829]"><div class="w-64 p-2 font-bold text-sm">Tarefa</div><div class="flex overflow-x-auto">${days.map(d => `<div class="w-12 text-center text-[10px] p-1 border-r ${d.getDay()===0||d.getDay()===6 ? 'bg-slate-100 dark:bg-slate-800' : ''} ${d.toDateString()===today.toDateString() ? 'bg-blue-100 dark:bg-blue-900/30 font-bold text-monday-blue' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>${tasks.map(t => {
-                if (!t.timeline?.[0] || !t.timeline?.[1]) return '';
-                const startOff = Math.max(0, Math.floor((new Date(t.timeline[0]) - start) / (1000*60*60*24)));
-                const dur = Math.max(1, Math.ceil((new Date(t.timeline[1]) - new Date(t.timeline[0])) / (1000*60*60*24)) + 1);
-                if (startOff > days.length) return '';
-                return `<div class="flex border-b"><div class="w-64 p-2 text-sm truncate" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div><div class="relative" style="width:${days.length*48}px; height:40px"><div class="absolute rounded-full h-6 top-1 text-white text-[10px] flex items-center px-2" style="left:${startOff*48}px; width:${dur*48}px; background:${STATUS_TYPES[t.status]?.color || '#c4c4c4'}">${STATUS_TYPES[t.status]?.label || t.status}</div>${(()=>{const todayOff = Math.floor((today-start)/(1000*60*60*24)); if(todayOff>=0 && todayOff<days.length) return `<div class="absolute top-0 bottom-0 w-0.5 bg-red-500" style="left:${todayOff*48}px"></div>`; return '';})()}</div></div>`;
-            }).join('')}</div>`;
+            
+            let html = `<div class="gantt-wrapper"><div class="gantt-container"><div class="gantt-header"><div class="gantt-task-col" style="width:280px">Tarefa / Grupo</div><div class="gantt-days">${days.map(d => `<div class="gantt-day ${d.getDay()===0||d.getDay()===6 ? 'weekend' : ''} ${d.toDateString()===today.toDateString() ? 'today' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>`;
+            
+            for (const group of board.groups) {
+                const groupTasks = (group.tasks || []).filter(t => t.timeline?.[0] && t.timeline?.[1]);
+                html += `<div class="gantt-row-group"><div class="gantt-group-header"><div class="gantt-task-col" style="background:${group.color}20; font-weight:bold">📁 ${escapeHtml(group.name)}</div><div class="gantt-days" style="width:${days.length*48}px"></div></div>`;
+                for (const task of groupTasks) {
+                    const startIdx = Math.max(0, Math.floor((new Date(task.timeline[0]) - start) / (1000*60*60*24)));
+                    const dur = Math.max(1, Math.ceil((new Date(task.timeline[1]) - new Date(task.timeline[0])) / (1000*60*60*24)) + 1);
+                    if (startIdx >= days.length) continue;
+                    html += `<div class="gantt-task-row"><div class="gantt-task-col" style="width:280px">${escapeHtml(task.title)}</div><div class="gantt-timeline" style="width:${days.length*48}px; position:relative"><div class="gantt-task-bar" style="left:${startIdx*48}px; width:${dur*48}px; background:${STATUS_TYPES[task.status]?.color || '#c4c4c4'}">${STATUS_TYPES[task.status]?.label || task.status}</div>${(()=>{ const todayOff = Math.floor((today-start)/(1000*60*60*24)); if(todayOff>=0 && todayOff<days.length) return `<div style="position:absolute; top:0; bottom:0; width:2px; background:#ef4444; left:${todayOff*48}px; z-index:15"></div>`; return '';})()}</div></div>`;
+                }
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+            return html;
         }
+        
         function renderCalendar(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color}))) || [];
             const today = new Date();
@@ -1274,16 +931,44 @@
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month+1, 0).getDate();
             const tasksByDate = {};
-            tasks.forEach(t => { if (t.timeline?.[1]) { const d = new Date(t.timeline[1]); if (d.getMonth() === month && d.getFullYear() === year) { const key = d.getDate(); if (!tasksByDate[key]) tasksByDate[key] = []; tasksByDate[key].push(t); } } });
+            tasks.forEach(t => { 
+                if (t.timeline?.[1]) { 
+                    const d = new Date(t.timeline[1]); 
+                    if (d.getMonth() === month && d.getFullYear() === year) { 
+                        const key = d.getDate(); 
+                        if (!tasksByDate[key]) tasksByDate[key] = []; 
+                        tasksByDate[key].push(t); 
+                    } 
+                } 
+            });
             let html = `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="flex justify-between p-4 border-b"><button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full">◀</button><h3 class="font-bold">${new Date(year, month).toLocaleDateString('pt', {month:'long', year:'numeric'})}</h3><button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full">▶</button></div><div class="grid grid-cols-7 text-center py-2 text-xs font-bold text-slate-400"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="grid grid-cols-7">`;
             for (let i=0; i<firstDay; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
-            for (let d=1; d<=daysInMonth; d++) { const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}"><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`; }
+            for (let d=1; d<=daysInMonth; d++) { 
+                const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); 
+                html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''} cursor-pointer hover:bg-slate-100" onclick='showDayTasks(${d}, ${month}, ${year})'><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`; 
+            }
             const remaining = 42 - (firstDay + daysInMonth);
             for (let i=0; i<remaining; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
             html += `</div></div>`;
             return html;
         }
+        
+        function showDayTasks(day, month, year) {
+            const board = state.boards.find(b => b.id === state.activeBoardId);
+            if (!board) return;
+            const targetDate = new Date(year, month, day);
+            const dateStr = targetDate.toISOString().split('T')[0];
+            const tasks = board.groups?.flatMap(g => g.tasks || []).filter(t => t.timeline?.[1] === dateStr) || [];
+            if (!tasks.length) { alert("Nenhuma tarefa para este dia"); return; }
+            let modal = document.createElement('div');
+            modal.className = 'day-modal';
+            modal.innerHTML = `<div class="day-modal-content"><h3 class="font-bold text-lg mb-4">📅 Tarefas para ${day}/${month+1}/${year}</h3><div class="space-y-2">${tasks.map(t => `<div class="p-2 border rounded"><div class="font-bold">${escapeHtml(t.title)}</div><div class="text-xs text-slate-500">Status: ${STATUS_TYPES[t.status]?.label}</div></div>`).join('')}</div><button onclick="this.closest('.day-modal').remove()" class="mt-4 btn-primary w-full py-2">Fechar</button></div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        }
+        
         function changeMonth(delta) { state.calendarDate = state.calendarDate || new Date(); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); renderBoardContent(); }
+        
         function toggleGroup(gId) { state.collapsedGroups[gId] = !state.collapsedGroups[gId]; renderBoardContent(); }
         
         // ==================== AÇÕES DE TAREFAS ====================
@@ -1298,6 +983,7 @@
             task[field] = val;
             await fullSave();
             renderBoardContent();
+            renderSidebar();
         }
         async function updateTaskDate(gId, tId, idx, val) {
             if (!isCurrentUserManager()) return;
@@ -1335,6 +1021,7 @@
             group.tasks = group.tasks.filter(t => t.id != tId);
             await fullSave();
             renderBoardContent();
+            renderSidebar();
             showToast('✅ Tarefa removida');
         }
         async function addNewGroup() {
@@ -1393,6 +1080,135 @@
             renderBoardContent();
         }
         
+        // ==================== DASHBOARD ====================
+        function renderDashboard() {
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            let statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
+            let teamTask = {};
+            state.team.forEach(m => teamTask[m.id] = { name: m.name, count: 0, overdue: 0 });
+            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; if (teamTask[t.ownerId]) { teamTask[t.ownerId].count++; const ds = calculateDueDateStatus(t.timeline?.[1], t.status); if (ds.status === 'overdue' && t.status !== 'Concluido') teamTask[t.ownerId].overdue++; } }); }); });
+            const total = Object.values(statusCounts).reduce((a,b)=>a+b,0);
+            const perc = total ? Math.round((statusCounts['Concluido']/total)*100) : 0;
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-6xl mx-auto p-6"><h2 class="text-3xl font-black mb-8">📊 Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Status Global</h3><canvas id="statusChart" height="200"></canvas></div>
+                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border flex flex-col items-center"><h3 class="font-bold mb-4">Eficiência Geral</h3><div class="relative w-40 h-40"><svg class="w-full h-full -rotate-90"><circle cx="80" cy="80" r="70" stroke="#e2e8f0" stroke-width="12" fill="none"/><circle id="progress-circle" cx="80" cy="80" r="70" stroke="#0073ea" stroke-width="12" fill="none" stroke-dasharray="439.8" stroke-dashoffset="${439.8 - (perc/100)*439.8}" style="transition: stroke-dashoffset 1s"/></svg><div class="absolute inset-0 flex items-center justify-center text-2xl font-black">${perc}%</div></div></div></div>
+                <div class="mt-6 bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Carga por Membro</h3><canvas id="teamChart" height="200"></canvas></div></div>`;
+            setTimeout(() => {
+                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
+                if(ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: Object.keys(STATUS_TYPES).map(k=>statusCounts[k]||0), backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
+                const ctx2 = document.getElementById('teamChart')?.getContext('2d');
+                if(ctx2) new Chart(ctx2, { type: 'bar', data: { labels: Object.values(teamTask).map(t=>t.name), datasets: [{ label: 'Tarefas', data: Object.values(teamTask).map(t=>t.count), backgroundColor: '#0073ea' }, { label: 'Atrasadas', data: Object.values(teamTask).map(t=>t.overdue), backgroundColor: '#fb275d' }] } });
+            }, 100);
+        }
+        
+        // ==================== RELATÓRIOS (Foco em membros) ====================
+        function renderReports() {
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            
+            const memberData = [];
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            state.team.forEach(member => {
+                let total = 0, concluidas = 0, atrasadas = 0, pendentes = 0, venceHoje = 0;
+                state.boards.forEach(board => {
+                    board.groups?.forEach(group => {
+                        group.tasks?.forEach(task => {
+                            if (task.ownerId === member.id) {
+                                total++;
+                                if (task.status === 'Concluido') concluidas++;
+                                else {
+                                    pendentes++;
+                                    const due = task.timeline?.[1];
+                                    if (due && due < hoje) atrasadas++;
+                                    if (due === hoje) venceHoje++;
+                                }
+                            }
+                        });
+                    });
+                });
+                memberData.push({
+                    id: member.id, name: member.name, color: member.color,
+                    total, concluidas, pendentes, atrasadas, venceHoje,
+                    progresso: total ? Math.round((concluidas / total) * 100) : 0
+                });
+            });
+            
+            const todasAtrasadas = [];
+            state.boards.forEach(b => {
+                b.groups?.forEach(g => {
+                    g.tasks?.forEach(t => {
+                        if (t.timeline?.[1] && t.timeline[1] < hoje && t.status !== 'Concluido') {
+                            todasAtrasadas.push({ title: t.title, project: b.name, due: t.timeline[1], owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
+                        }
+                    });
+                });
+            });
+            
+            const hojeList = [];
+            state.boards.forEach(b => {
+                b.groups?.forEach(g => {
+                    g.tasks?.forEach(t => {
+                        if (t.timeline?.[1] === hoje && t.status !== 'Concluido') {
+                            hojeList.push({ title: t.title, project: b.name, owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
+                        }
+                    });
+                });
+            });
+            
+            const projectProgress = state.boards.map(b => ({ name: b.name, progress: calculateProjectProgress(b) }));
+            
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-6xl mx-auto p-6">
+                    <h2 class="text-3xl font-black mb-6">📈 Relatórios de Desempenho</h2>
+                    <div class="report-section">
+                        <h3 class="font-bold text-lg mb-4">👥 Desempenho por Membro</h3>
+                        <div class="overflow-x-auto">
+                            <table class="member-table">
+                                <thead><tr><th>Membro</th><th>Tarefas</th><th>Concluídas</th><th>Pendentes</th><th>Atrasadas</th><th>Vence hoje</th><th>Progresso</th><th></th></tr></thead>
+                                <tbody>${memberData.map(m => `<tr><td><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${m.color}">${m.name.charAt(0)}</div>${escapeHtml(m.name)}</div></td><td class="font-bold">${m.total}</td><td class="text-green-600">${m.concluidas}</td><td class="text-orange-500">${m.pendentes}</td><td class="text-red-500">${m.atrasadas}</td><td class="text-blue-500">${m.venceHoje}</td><td class="progress-cell"><div class="progress-bar-small"><div class="progress-fill-small" style="width:${m.progresso}%"></div></div><span class="text-xs">${m.progresso}%</span></td><td><button onclick="showMemberTasks('${m.id}')" class="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">Ver tarefas</button></td></tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="report-section"><h3 class="font-bold mb-4">📊 Tarefas por Membro</h3><canvas id="memberTasksChart" height="200"></canvas></div>
+                        <div class="report-section"><h3 class="font-bold mb-4">✅ Progresso por Projeto</h3><canvas id="projectProgressChart" height="200"></canvas></div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="report-section"><h3 class="font-bold mb-4">⏰ Tarefas Atrasadas</h3><div id="overdueList" class="max-h-60 overflow-y-auto">${todasAtrasadas.length ? `<ul class="space-y-2">${todasAtrasadas.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)} | Venceu em ${new Date(t.due).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa atrasada</p>'}</div></div>
+                        <div class="report-section"><h3 class="font-bold mb-4">📅 Tarefas que Vencem Hoje</h3><div id="todayList" class="max-h-60 overflow-y-auto">${hojeList.length ? `<ul class="space-y-2">${hojeList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa para hoje</p>'}</div></div>
+                    </div>
+                </div>`;
+            
+            setTimeout(() => {
+                const ctxMember = document.getElementById('memberTasksChart')?.getContext('2d');
+                if(ctxMember) new Chart(ctxMember, { type: 'bar', data: { labels: memberData.map(m => m.name), datasets: [{ label: 'Total', data: memberData.map(m => m.total), backgroundColor: '#0073ea' }, { label: 'Concluídas', data: memberData.map(m => m.concluidas), backgroundColor: '#00ca72' }, { label: 'Atrasadas', data: memberData.map(m => m.atrasadas), backgroundColor: '#fb275d' }] } });
+                const ctxProj = document.getElementById('projectProgressChart')?.getContext('2d');
+                if(ctxProj) new Chart(ctxProj, { type: 'bar', data: { labels: projectProgress.map(p => p.name), datasets: [{ label: 'Progresso (%)', data: projectProgress.map(p => p.progress), backgroundColor: '#ffad00' }] } });
+            }, 100);
+        }
+        
+        function showMemberTasks(memberId) {
+            const member = state.team.find(m => m.id === memberId);
+            if (!member) return;
+            let tarefas = [];
+            state.boards.forEach(board => {
+                board.groups?.forEach(group => {
+                    group.tasks?.forEach(task => {
+                        if (task.ownerId === memberId) {
+                            tarefas.push({ ...task, boardName: board.name, groupName: group.name });
+                        }
+                    });
+                });
+            });
+            if (!tarefas.length) { alert(`${member.name} não possui tarefas.`); return; }
+            let modal = document.createElement('div');
+            modal.className = 'day-modal';
+            modal.innerHTML = `<div class="day-modal-content"><h3 class="font-bold text-lg mb-4">📋 Tarefas de ${escapeHtml(member.name)}</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${tarefas.map(t => `<div class="p-2 border rounded"><div class="font-bold">${escapeHtml(t.title)}</div><div class="text-xs">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div><div class="text-xs">Status: ${STATUS_TYPES[t.status]?.label} | Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</div></div>`).join('')}</div><button onclick="this.closest('.day-modal').remove()" class="mt-4 btn-primary w-full py-2">Fechar</button></div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        }
+        
         // ==================== DROPDOWNS ====================
         let activeDropdown = null;
         function showStatusDropdown(trigger, groupId, taskId) {
@@ -1412,7 +1228,8 @@
             dropdown.style.left = (rect.left + window.scrollX) + 'px';
             options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.style.borderLeft = `4px solid ${opt.color}`;
+                btn.style.backgroundColor = opt.color;
+                btn.style.color = 'white';
                 btn.textContent = opt.label;
                 btn.onclick = (e) => { e.stopPropagation(); onSelect(opt.value); closeActiveDropdown(); };
                 dropdown.appendChild(btn);
@@ -1425,7 +1242,7 @@
         }
         function closeActiveDropdown() { if (activeDropdown) { activeDropdown.remove(); activeDropdown = null; } }
         
-        // ==================== CRIAÇÃO DE PROJETOS ====================
+        // ==================== UTILITÁRIOS ====================
         function openNewBoardModal() { document.getElementById('newBoardModal').classList.remove('hidden'); }
         function closeNewBoardModal() { document.getElementById('newBoardModal').classList.add('hidden'); document.getElementById('newBoardName').value = ''; }
         async function createNewBoard() {
@@ -1461,6 +1278,32 @@
         }
         function changeMainView(v) { state.activeView = v; render(); }
         function toggleDarkMode() { state.darkMode = !state.darkMode; document.documentElement.classList.toggle('dark'); fullSave(); }
+        function saveDatabaseFile() {
+            const dataStr = JSON.stringify({ team: state.team, boards: state.boards }, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = `workspace_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = url; a.click(); URL.revokeObjectURL(url);
+            showToast('✅ Dados exportados');
+        }
+        function openDatabaseFile() {
+            const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const text = await file.text();
+                    const imported = JSON.parse(text);
+                    if (imported.team && imported.boards) {
+                        state.team = imported.team; state.boards = imported.boards;
+                        await fullSave(); renderUserList(); render(); renderSidebar();
+                        showToast('✅ Banco carregado');
+                    }
+                } catch(e) { showToast('❌ Erro', true); }
+            };
+            input.click();
+        }
         function showTaskDetail(taskId) { alert("Detalhe da tarefa em breve"); }
         
         // ==================== INICIALIZAÇÃO ====================
@@ -1469,10 +1312,8 @@
             loadFromLocalStorage();
             if (!state.team.length) {
                 state.team = [
-                    { id: 'm1', username: 'gerente', name: 'João Silva', password: btoa('123456'), color: '#ffad00', role: 'Gerente de Projetos', email: 'joao@empresa.com', phone: '(11) 99999-9999', cargo: 'Gerente de Projetos', type: 'manager', firstAccess: false },
-                    { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', email: 'maria@empresa.com', phone: '(11) 98888-8888', cargo: 'Designer UX', type: 'executor', firstAccess: true },
-                    { id: 'm3', username: 'carlos', name: 'Carlos Lima', password: btoa('123456'), color: '#00ca72', role: 'Desenvolvedor', email: 'carlos@empresa.com', phone: '(11) 97777-7777', cargo: 'Desenvolvedor Frontend', type: 'executor', firstAccess: false },
-                    { id: 'm4', username: 'ana', name: 'Ana Paula', password: btoa('123456'), color: '#fb275d', role: 'QA', email: 'ana@empresa.com', phone: '(11) 96666-6666', cargo: 'Analista de Qualidade', type: 'executor', firstAccess: false }
+                    { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário', type: 'manager', firstAccess: false },
+                    { id: 'm2', username: 'maria', name: 'Maria Souza', password: btoa('123456'), color: '#a25ddc', role: 'Designer', type: 'executor', firstAccess: false }
                 ];
             }
             if (!state.boards.length && state.team.length) {
@@ -1485,7 +1326,6 @@
                 document.getElementById('currentUserAvatar').style.background = state.currentUser.color;
                 document.getElementById('currentUserAvatar').textContent = state.currentUser.name.charAt(0);
                 document.getElementById('currentUserName').textContent = state.currentUser.name;
-                document.getElementById('currentUserRole').textContent = state.currentUser.type === 'manager' ? 'Gerente' : 'Executor';
                 updateUIBasedOnPermissions();
                 render();
                 renderSidebar();
