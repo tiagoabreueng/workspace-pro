@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="theme-color" content="#0073ea">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Forçar não-cache para evitar versões antigas -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -224,12 +228,15 @@
         th, td { padding: 12px 8px; vertical-align: middle; }
         input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; width: 85px; }
         
-        /* GANTT FIX: rolagem horizontal sem sobreposição */
+        /* GANTT COM CABEÇALHO FIXO */
         .gantt-wrapper {
             overflow-x: auto;
+            overflow-y: auto;
+            max-height: 600px;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
             background: white;
+            position: relative;
         }
         .dark .gantt-wrapper { background: #181829; border-color: #2d2d3f; }
         .gantt-container {
@@ -243,7 +250,7 @@
             border-bottom: 2px solid #e2e8f0;
             position: sticky;
             top: 0;
-            z-index: 20;
+            z-index: 30;
         }
         .dark .gantt-header { background: #1e1e2e; border-bottom-color: #2d2d3f; }
         .gantt-task-col {
@@ -256,7 +263,7 @@
             background: inherit;
             position: sticky;
             left: 0;
-            z-index: 10;
+            z-index: 20;
         }
         .dark .gantt-task-col { border-right-color: #2d2d3f; }
         .gantt-days {
@@ -359,6 +366,15 @@
             padding: 20px;
         }
         .dark .day-modal-content { background: #181829; }
+        
+        /* Tabela de membros no relatório */
+        .member-table { width: 100%; border-collapse: collapse; }
+        .member-table th, .member-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .member-table th { background: #f8fafc; font-weight: 700; }
+        .dark .member-table th { background: #1e1e2e; }
+        .progress-cell { width: 100px; }
+        .progress-bar-small { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+        .progress-fill-small { height: 100%; background: #00ca72; border-radius: 3px; }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -491,7 +507,7 @@
     <div id="dropdownPortal"></div>
 
     <script>
-        // ==================== DATA & PERSISTÊNCIA (MongoDB + localStorage fallback) ====================
+        // ==================== DATA & PERSISTÊNCIA ====================
         let state = {
             activeView: 'home',
             boardView: 'table',
@@ -518,7 +534,7 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
-        // Persistência híbrida: tenta salvar no servidor, mas sempre salva no localStorage
+        // Salvar localmente e tentar no servidor
         async function saveToLocalStorage() {
             const data = { team: state.team, boards: state.boards, currentUser: state.currentUser, darkMode: state.darkMode };
             localStorage.setItem('workspace_pro_data', JSON.stringify(data));
@@ -675,7 +691,7 @@
             showToast(`✅ Membro removido`);
         }
 
-        // ==================== SIDEBAR (com separação de concluídos e membros) ====================
+        // ==================== SIDEBAR ====================
         function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
         function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobileOverlay').classList.remove('open'); }
         
@@ -702,7 +718,6 @@
             document.getElementById('sidebarMemberName').innerText = member.name;
             document.getElementById('sidebarMemberRole').innerText = member.role || 'Membro';
             
-            // Coletar todas as tarefas do membro
             let tarefas = [];
             state.boards.forEach(board => {
                 board.groups?.forEach(group => {
@@ -1085,41 +1100,57 @@
             }, 100);
         }
         
-        // ==================== RELATÓRIOS COMPLETOS (diferente do dashboard) ====================
+        // ==================== RELATÓRIOS (Foco em membros e andamento) ====================
         function renderReports() {
             if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
-            let totalProjetos = state.boards.length;
-            let totalTarefas = 0;
-            let tarefasConcluidas = 0;
-            let tarefasAtrasadas = 0;
-            let tarefasHoje = 0;
+            
+            // Coletar dados dos membros
+            const memberData = [];
             const hoje = new Date().toISOString().split('T')[0];
-            const tarefasPorProjeto = [];
-            state.boards.forEach(b => {
-                let projTotal = 0, projConc = 0;
-                b.groups?.forEach(g => {
-                    g.tasks?.forEach(t => {
-                        totalTarefas++;
-                        projTotal++;
-                        if (t.status === 'Concluido') { tarefasConcluidas++; projConc++; }
-                        const due = t.timeline?.[1];
-                        if (due && t.status !== 'Concluido') {
-                            if (due < hoje) tarefasAtrasadas++;
-                            if (due === hoje) tarefasHoje++;
-                        }
+            
+            state.team.forEach(member => {
+                let total = 0, concluidas = 0, atrasadas = 0, pendentes = 0, venceHoje = 0;
+                const tarefasDetalhadas = [];
+                
+                state.boards.forEach(board => {
+                    board.groups?.forEach(group => {
+                        group.tasks?.forEach(task => {
+                            if (task.ownerId === member.id) {
+                                total++;
+                                if (task.status === 'Concluido') concluidas++;
+                                else {
+                                    pendentes++;
+                                    const due = task.timeline?.[1];
+                                    if (due && due < hoje) atrasadas++;
+                                    if (due === hoje) venceHoje++;
+                                    tarefasDetalhadas.push({ ...task, boardName: board.name, groupName: group.name });
+                                }
+                            }
+                        });
                     });
                 });
-                tarefasPorProjeto.push({ name: b.name, progress: projTotal ? Math.round((projConc/projTotal)*100) : 0 });
+                
+                memberData.push({
+                    id: member.id,
+                    name: member.name,
+                    color: member.color,
+                    total,
+                    concluidas,
+                    pendentes,
+                    atrasadas,
+                    venceHoje,
+                    progresso: total ? Math.round((concluidas / total) * 100) : 0,
+                    tarefasPendentes: tarefasDetalhadas
+                });
             });
-            const percConcl = totalTarefas ? Math.round((tarefasConcluidas/totalTarefas)*100) : 0;
             
-            // Tarefas atrasadas detalhadas
-            const atrasadasList = [];
+            // Tarefas atrasadas de todos os membros
+            const todasAtrasadas = [];
             state.boards.forEach(b => {
                 b.groups?.forEach(g => {
                     g.tasks?.forEach(t => {
                         if (t.timeline?.[1] && t.timeline[1] < hoje && t.status !== 'Concluido') {
-                            atrasadasList.push({ title: t.title, project: b.name, due: t.timeline[1], owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
+                            todasAtrasadas.push({ title: t.title, project: b.name, due: t.timeline[1], owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
                         }
                     });
                 });
@@ -1137,40 +1168,106 @@
                 });
             });
             
+            // Gráfico de progresso por projeto
+            const projectProgress = state.boards.map(b => ({ name: b.name, progress: calculateProjectProgress(b) }));
+            
             document.getElementById('view-container').innerHTML = `
                 <div class="max-w-6xl mx-auto p-6">
-                    <h2 class="text-3xl font-black mb-6">📈 Relatórios Gerenciais</h2>
-                    <div class="report-stats-grid">
-                        <div class="stat-card"><div class="stat-value">${totalProjetos}</div><div class="text-sm">Projetos</div></div>
-                        <div class="stat-card"><div class="stat-value">${totalTarefas}</div><div class="text-sm">Tarefas</div></div>
-                        <div class="stat-card"><div class="stat-value">${percConcl}%</div><div class="text-sm">Concluídas</div></div>
-                        <div class="stat-card"><div class="stat-value">${tarefasAtrasadas}</div><div class="text-sm">Atrasadas</div></div>
+                    <h2 class="text-3xl font-black mb-6">📈 Relatórios de Desempenho</h2>
+                    
+                    <div class="report-section">
+                        <h3 class="font-bold text-lg mb-4">👥 Desempenho por Membro</h3>
+                        <div class="overflow-x-auto">
+                            <table class="member-table">
+                                <thead><tr><th>Membro</th><th>Tarefas</th><th>Concluídas</th><th>Pendentes</th><th>Atrasadas</th><th>Vence hoje</th><th>Progresso</th><th></th></tr></thead>
+                                <tbody>
+                                    ${memberData.map(m => `
+                                        <tr>
+                                            <td><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${m.color}">${m.name.charAt(0)}</div>${escapeHtml(m.name)}</div></td>
+                                            <td class="font-bold">${m.total}</td>
+                                            <td class="text-green-600">${m.concluidas}</td>
+                                            <td class="text-orange-500">${m.pendentes}</td>
+                                            <td class="text-red-500">${m.atrasadas}</td>
+                                            <td class="text-blue-500">${m.venceHoje}</td>
+                                            <td class="progress-cell"><div class="progress-bar-small"><div class="progress-fill-small" style="width:${m.progresso}%"></div></div><span class="text-xs">${m.progresso}%</span></td>
+                                            <td><button onclick="showMemberTasks('${m.id}')" class="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">Ver tarefas</button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                    
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div class="report-section"><h3 class="font-bold mb-4">📊 Status das Tarefas</h3><canvas id="reportStatusChart" height="200"></canvas></div>
-                        <div class="report-section"><h3 class="font-bold mb-4">⏰ Tarefas Atrasadas</h3><div id="overdueList" class="max-h-60 overflow-y-auto"></div></div>
+                        <div class="report-section">
+                            <h3 class="font-bold mb-4">📊 Tarefas por Membro</h3>
+                            <canvas id="memberTasksChart" height="200"></canvas>
+                        </div>
+                        <div class="report-section">
+                            <h3 class="font-bold mb-4">✅ Progresso por Projeto</h3>
+                            <canvas id="projectProgressChart" height="200"></canvas>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div class="report-section"><h3 class="font-bold mb-4">📅 Tarefas que Vencem Hoje</h3><div id="todayList" class="max-h-60 overflow-y-auto"></div></div>
-                        <div class="report-section"><h3 class="font-bold mb-4">📊 Progresso por Projeto</h3><canvas id="projectProgressChart" height="200"></canvas></div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="report-section">
+                            <h3 class="font-bold mb-4">⏰ Tarefas Atrasadas</h3>
+                            <div id="overdueList" class="max-h-60 overflow-y-auto">${todasAtrasadas.length ? `<ul class="space-y-2">${todasAtrasadas.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)} | Venceu em ${new Date(t.due).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa atrasada</p>'}</div>
+                        </div>
+                        <div class="report-section">
+                            <h3 class="font-bold mb-4">📅 Tarefas que Vencem Hoje</h3>
+                            <div id="todayList" class="max-h-60 overflow-y-auto">${hojeList.length ? `<ul class="space-y-2">${hojeList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa para hoje</p>'}</div>
+                        </div>
                     </div>
                 </div>`;
             
             setTimeout(() => {
-                const statusData = Object.keys(STATUS_TYPES).map(k => {
-                    let count = 0;
-                    state.boards.forEach(b => b.groups?.forEach(g => g.tasks?.forEach(t => { if(t.status === k) count++; })));
-                    return count;
-                });
-                const ctxStatus = document.getElementById('reportStatusChart')?.getContext('2d');
-                if(ctxStatus) new Chart(ctxStatus, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: statusData, backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
-                
+                const ctxMember = document.getElementById('memberTasksChart')?.getContext('2d');
+                if(ctxMember) {
+                    new Chart(ctxMember, {
+                        type: 'bar',
+                        data: {
+                            labels: memberData.map(m => m.name),
+                            datasets: [
+                                { label: 'Total de Tarefas', data: memberData.map(m => m.total), backgroundColor: '#0073ea' },
+                                { label: 'Concluídas', data: memberData.map(m => m.concluidas), backgroundColor: '#00ca72' },
+                                { label: 'Atrasadas', data: memberData.map(m => m.atrasadas), backgroundColor: '#fb275d' }
+                            ]
+                        }
+                    });
+                }
                 const ctxProj = document.getElementById('projectProgressChart')?.getContext('2d');
-                if(ctxProj) new Chart(ctxProj, { type: 'bar', data: { labels: tarefasPorProjeto.map(p=>p.name), datasets: [{ label: 'Progresso (%)', data: tarefasPorProjeto.map(p=>p.progress), backgroundColor: '#0073ea' }] } });
-                
-                document.getElementById('overdueList').innerHTML = atrasadasList.length ? `<ul class="space-y-2">${atrasadasList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)} | Venceu em ${new Date(t.due).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa atrasada</p>';
-                document.getElementById('todayList').innerHTML = hojeList.length ? `<ul class="space-y-2">${hojeList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa para hoje</p>';
+                if(ctxProj) {
+                    new Chart(ctxProj, {
+                        type: 'bar',
+                        data: {
+                            labels: projectProgress.map(p => p.name),
+                            datasets: [{ label: 'Progresso (%)', data: projectProgress.map(p => p.progress), backgroundColor: '#ffad00' }]
+                        }
+                    });
+                }
             }, 100);
+        }
+        
+        function showMemberTasks(memberId) {
+            const member = state.team.find(m => m.id === memberId);
+            if (!member) return;
+            let tarefas = [];
+            state.boards.forEach(board => {
+                board.groups?.forEach(group => {
+                    group.tasks?.forEach(task => {
+                        if (task.ownerId === memberId) {
+                            tarefas.push({ ...task, boardName: board.name, groupName: group.name });
+                        }
+                    });
+                });
+            });
+            if (!tarefas.length) { alert(`${member.name} não possui tarefas.`); return; }
+            let modal = document.createElement('div');
+            modal.className = 'day-modal';
+            modal.innerHTML = `<div class="day-modal-content"><h3 class="font-bold text-lg mb-4">📋 Tarefas de ${escapeHtml(member.name)}</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${tarefas.map(t => `<div class="p-2 border rounded"><div class="font-bold">${escapeHtml(t.title)}</div><div class="text-xs">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div><div class="text-xs">Status: ${STATUS_TYPES[t.status]?.label} | Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</div></div>`).join('')}</div><button onclick="this.closest('.day-modal').remove()" class="mt-4 btn-primary w-full py-2">Fechar</button></div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
         }
         
         // ==================== DROPDOWNS ====================
@@ -1274,7 +1371,6 @@
         window.onload = async () => {
             await carregarDadosMongo();
             loadFromLocalStorage(); // fallback
-            // Se ainda não há dados, criar exemplos
             if (!state.team.length) {
                 state.team = [
                     { id: 'm1', username: 'tiagoabreu', name: 'Tiago Abreu', password: btoa('123456'), color: '#ffad00', role: 'Secretário', type: 'manager', firstAccess: false },
