@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="theme-color" content="#0073ea">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- FORÇAR NÃO CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="version" content="2.0.1">
-    <title>Workspace Pro - Gerenciador de Projetos (v2)</title>
+    <meta name="version" content="2.1.0">
+    <title>Workspace Pro - Gerenciador de Projetos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -229,7 +230,6 @@
         th, td { padding: 12px 8px; vertical-align: middle; }
         input[type="date"] { background: transparent; border: none; outline: none; font-size: 10px; width: 85px; }
         
-        /* GANTT COM CABEÇALHO FIXO */
         .gantt-wrapper {
             overflow-x: auto;
             overflow-y: auto;
@@ -267,9 +267,7 @@
             z-index: 20;
         }
         .dark .gantt-task-col { border-right-color: #2d2d3f; }
-        .gantt-days {
-            display: flex;
-        }
+        .gantt-days { display: flex; }
         .gantt-day {
             width: 48px;
             flex-shrink: 0;
@@ -283,10 +281,7 @@
         .gantt-day.weekend { background: #f1f5f9; }
         .dark .gantt-day.weekend { background: #1a1a2a; }
         .gantt-day.today { background: #e6f0ff; color: #0073ea; font-weight: 800; }
-        .gantt-timeline {
-            position: relative;
-            height: 48px;
-        }
+        .gantt-timeline { position: relative; height: 48px; }
         .gantt-task-bar {
             position: absolute;
             height: 24px;
@@ -375,6 +370,59 @@
         .progress-cell { width: 100px; }
         .progress-bar-small { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
         .progress-fill-small { height: 100%; background: #00ca72; border-radius: 3px; }
+        
+        .member-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .dark .member-card { background: #181829; border-color: #2d2d3f; }
+        .member-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        
+        .pdf-export-btn {
+            background: #dc2626;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .pdf-export-btn:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(220,38,38,0.3);
+        }
+        .pdf-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            z-index: 9999999;
+            text-align: center;
+            display: none;
+        }
+        .dark .pdf-progress { background: #181829; border: 1px solid #2d2d3f; }
+        .pdf-progress.open { display: block; }
+        .pdf-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #dc2626;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-monday-bg dark:bg-[#0b0b15] text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
@@ -449,14 +497,17 @@
         <main class="flex-1 overflow-y-auto pb-20 md:pb-6 custom-scroll" id="view-container"></main>
     </div>
 
+    <!-- MODAIS -->
     <div id="memberModal" class="modal hidden">
         <div class="modal-content">
-            <h2 class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
+            <h2 id="memberModalTitle" class="text-2xl font-black mb-6">👥 Adicionar Membro</h2>
             <input type="hidden" id="memberId">
             <input type="text" id="memberName" placeholder="Nome *" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <input type="text" id="memberUsername" placeholder="Usuário *" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <input type="password" id="memberPassword" placeholder="Senha" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <input type="text" id="memberRole" placeholder="Cargo" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
+            <input type="email" id="memberEmail" placeholder="E-mail" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
+            <input type="tel" id="memberPhone" placeholder="Telefone" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
             <select id="memberType" class="w-full p-3 border rounded-lg mb-3 bg-transparent">
                 <option value="executor">Executor</option>
                 <option value="manager">Gerente</option>
@@ -485,6 +536,15 @@
         </div>
     </div>
 
+    <div id="resetPasswordModal" class="modal hidden">
+        <div class="modal-content text-center">
+            <h2 class="text-2xl font-black mb-4">🔑 Nova Senha Gerada</h2>
+            <p id="resetUserName" class="mb-2"></p>
+            <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-2xl font-mono font-bold text-monday-blue mb-4" id="newPasswordDisplay"></div>
+            <div class="flex gap-3"><button onclick="copyNewPassword()" class="flex-1 btn-primary">📋 Copiar</button><button onclick="closeResetPasswordModal()" class="flex-1 btn-outline">Fechar</button></div>
+        </div>
+    </div>
+
     <div id="userMenu" class="hidden absolute right-4 top-14 bg-white dark:bg-[#181829] border rounded-xl shadow-lg z-50 w-40">
         <button onclick="openPasswordModal()" class="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 rounded-lg">🔑 Alterar Senha</button>
         <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg">🚪 Sair</button>
@@ -505,10 +565,10 @@
 
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-2xl opacity-0 transition-all duration-300 z-[9999]">Alterações salvas!</div>
     <div id="dropdownPortal"></div>
+    <div id="pdfProgress" class="pdf-progress"><div class="pdf-spinner"></div><h3 class="font-bold text-lg mb-2">Gerando PDF...</h3><p class="text-sm text-slate-400">Aguarde...</p></div>
 
     <script>
-        // === VERSÃO COM TIMESTAMP PARA FORÇAR RECARGA ===
-        const APP_VERSION = "2.0.1_" + Date.now();
+        const APP_VERSION = "2.1.0_" + Date.now();
         console.log("Workspace Pro versão:", APP_VERSION);
         
         let state = {
@@ -537,6 +597,7 @@
             'Critica': { label: 'Crítica', color: '#fb275d' }
         };
 
+        // ==================== PERSISTÊNCIA ====================
         async function saveToLocalStorage() {
             const data = { team: state.team, boards: state.boards, currentUser: state.currentUser, darkMode: state.darkMode };
             localStorage.setItem('workspace_pro_data', JSON.stringify(data));
@@ -665,21 +726,67 @@
         function canEditTask(t) { if (!state.currentUser) return false; if (state.currentUser.type === 'manager') return true; return state.currentUser.type === 'executor' && t.ownerId === state.currentUser.id; }
         function filterTasksByUser(tasks) { if (!state.currentUser) return []; if (state.currentUser.type === 'manager') return tasks; return tasks.filter(t => t.ownerId === state.currentUser.id); }
 
-        // ==================== MEMBROS ====================
-        function openAddMemberModal() { document.getElementById('memberModal').classList.remove('hidden'); }
+        // ==================== MEMBROS (corrigido edição e cards) ====================
+        function openAddMemberModal() { 
+            document.getElementById('memberModalTitle').innerText = '👥 Adicionar Membro';
+            document.getElementById('memberId').value = '';
+            document.getElementById('memberName').value = '';
+            document.getElementById('memberUsername').value = '';
+            document.getElementById('memberPassword').value = '';
+            document.getElementById('memberRole').value = '';
+            document.getElementById('memberEmail').value = '';
+            document.getElementById('memberPhone').value = '';
+            document.getElementById('memberType').value = 'executor';
+            document.getElementById('memberModal').classList.remove('hidden'); 
+        }
         function closeMemberModal() { document.getElementById('memberModal').classList.add('hidden'); }
+        
         function saveMember() {
+            const id = document.getElementById('memberId').value;
             const name = document.getElementById('memberName').value.trim();
             const username = document.getElementById('memberUsername').value.trim();
             const pwd = document.getElementById('memberPassword').value;
             const role = document.getElementById('memberRole').value;
+            const email = document.getElementById('memberEmail').value;
+            const phone = document.getElementById('memberPhone').value;
             const type = document.getElementById('memberType').value;
             if (!name || !username) { alert('Preencha nome e usuário'); return; }
-            if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
-            state.team.push({ id: 'm' + Date.now(), username, name, password: btoa(pwd || '123456'), color: '#' + Math.floor(Math.random()*16777215).toString(16), role, type, firstAccess: false });
-            fullSave(); closeMemberModal(); renderUserList(); renderSidebar(); render();
-            showToast(`✅ Membro ${name} adicionado`);
+            
+            if (id) {
+                // EDIÇÃO: verifica duplicidade ignorando o próprio ID
+                const member = state.team.find(m => m.id === id);
+                if (!member) { alert('Membro não encontrado'); return; }
+                if (state.team.some(m => m.id !== id && m.username === username)) { alert('Nome de usuário já existe'); return; }
+                member.name = name;
+                member.username = username;
+                if (pwd) { member.password = btoa(pwd); member.firstAccess = true; }
+                member.role = role;
+                member.email = email;
+                member.phone = phone;
+                member.cargo = role;
+                member.type = type;
+                showToast(`✅ Membro ${name} atualizado`);
+            } else {
+                // ADIÇÃO
+                if (state.team.some(u => u.username === username)) { alert('Usuário já existe'); return; }
+                const newMember = {
+                    id: 'm' + Date.now(),
+                    username, name,
+                    password: btoa(pwd || '123456'),
+                    color: '#' + Math.floor(Math.random()*16777215).toString(16),
+                    role, email, phone, cargo: role, type,
+                    firstAccess: true
+                };
+                state.team.push(newMember);
+                showToast(`✅ Membro ${name} adicionado`);
+            }
+            fullSave();
+            closeMemberModal();
+            renderUserList();
+            renderSidebar();
+            render();
         }
+        
         function deleteMember(id) {
             if (!isCurrentUserManager()) return;
             if (state.team.length <= 1) return alert("Mínimo um membro");
@@ -692,6 +799,39 @@
             fullSave(); renderUserList(); renderSidebar(); render();
             showToast(`✅ Membro removido`);
         }
+        
+        function openEditMemberModal(id) {
+            const m = state.team.find(u => u.id === id);
+            if (!m) return;
+            document.getElementById('memberModalTitle').innerText = '✏️ Editar Membro';
+            document.getElementById('memberId').value = m.id;
+            document.getElementById('memberName').value = m.name;
+            document.getElementById('memberUsername').value = m.username;
+            document.getElementById('memberPassword').value = '';
+            document.getElementById('memberRole').value = m.role || '';
+            document.getElementById('memberEmail').value = m.email || '';
+            document.getElementById('memberPhone').value = m.phone || '';
+            document.getElementById('memberType').value = m.type;
+            document.getElementById('memberModal').classList.remove('hidden');
+        }
+        
+        let currentResetPassword = '';
+        function resetUserPassword(userId) {
+            const user = state.team.find(u => u.id === userId);
+            if (!user) return;
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$';
+            let newPass = '';
+            for (let i = 0; i < 8; i++) newPass += chars.charAt(Math.floor(Math.random() * chars.length));
+            user.password = btoa(newPass);
+            user.firstAccess = true;
+            currentResetPassword = newPass;
+            document.getElementById('resetUserName').innerHTML = `Nova senha para: ${user.name}`;
+            document.getElementById('newPasswordDisplay').innerHTML = newPass;
+            document.getElementById('resetPasswordModal').classList.remove('hidden');
+            fullSave();
+        }
+        function copyNewPassword() { navigator.clipboard.writeText(currentResetPassword); showToast('Senha copiada!'); }
+        function closeResetPasswordModal() { document.getElementById('resetPasswordModal').classList.add('hidden'); }
 
         // ==================== SIDEBAR ====================
         function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('open'); }
@@ -788,60 +928,293 @@
                 </div>`;
         }
         
+        // ==================== ABA EQUIPE COM CARDS ====================
         function renderTeamView() {
             if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            
+            // Coletar dados de cada membro
+            const memberData = [];
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            state.team.forEach(member => {
+                let total = 0, concluidas = 0, atrasadas = 0, pendentes = 0, venceHoje = 0;
+                state.boards.forEach(board => {
+                    board.groups?.forEach(group => {
+                        group.tasks?.forEach(task => {
+                            if (task.ownerId === member.id) {
+                                total++;
+                                if (task.status === 'Concluido') concluidas++;
+                                else {
+                                    pendentes++;
+                                    const due = task.timeline?.[1];
+                                    if (due && due < hoje) atrasadas++;
+                                    if (due === hoje) venceHoje++;
+                                }
+                            }
+                        });
+                    });
+                });
+                memberData.push({
+                    id: member.id,
+                    name: member.name,
+                    username: member.username,
+                    color: member.color,
+                    role: member.role || 'Membro',
+                    email: member.email,
+                    phone: member.phone,
+                    type: member.type,
+                    total, concluidas, pendentes, atrasadas, venceHoje,
+                    progresso: total ? Math.round((concluidas / total) * 100) : 0
+                });
+            });
+            
             document.getElementById('view-container').innerHTML = `
-                <div class="max-w-4xl mx-auto p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black">👥 Equipe</h2><button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm">+ Adicionar</button></div>
-                    <div class="space-y-3">${state.team.map(m => `
-                        <div class="bg-white dark:bg-[#181829] p-4 rounded-xl border flex justify-between items-center">
-                            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: ${m.color}">${m.name.charAt(0)}</div><div><div class="font-bold">${escapeHtml(m.name)}</div><div class="text-xs text-slate-500">@${escapeHtml(m.username)}</div><span class="text-[10px] px-2 py-0.5 rounded-full ${m.type === 'manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${m.type === 'manager' ? 'Admin' : 'Usuário'}</span></div></div>
-                            <div class="flex gap-2"><button onclick="openEditMemberModal('${m.id}')" class="text-blue-500 text-xl">✏️</button>${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-red-500 text-xl">🗑️</button>` : ''}</div>
+                <div class="max-w-6xl mx-auto p-6">
+                    <div class="flex justify-between items-center mb-8">
+                        <h2 class="text-3xl font-black">👥 Equipe</h2>
+                        <button onclick="openAddMemberModal()" class="bg-monday-blue text-white px-4 py-2 rounded-full text-sm font-bold shadow">+ Adicionar Membro</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${memberData.map(m => `
+                            <div class="member-card">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg flex-shrink-0" style="background: ${m.color}">${m.name.charAt(0)}</div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <h3 class="font-bold text-lg">${escapeHtml(m.name)}</h3>
+                                            <span class="text-[10px] font-bold px-2 py-1 rounded ${m.type === 'manager' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}">${m.type === 'manager' ? '👑 Gerente' : '⚡ Executor'}</span>
+                                        </div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">@${escapeHtml(m.username)}</p>
+                                        <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
+                                            ${m.role ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Cargo</span><p class="font-medium">${escapeHtml(m.role)}</p></div>` : ''}
+                                            ${m.email ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Email</span><p class="font-medium truncate">${escapeHtml(m.email)}</p></div>` : ''}
+                                            ${m.phone ? `<div><span class="text-[10px] font-bold uppercase text-slate-400">Telefone</span><p class="font-medium">${escapeHtml(m.phone)}</p></div>` : ''}
+                                        </div>
+                                        <div class="flex gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                            <div class="text-center"><div class="text-xl font-black ${m.atrasadas > 0 ? 'text-red-500' : 'text-slate-400'}">${m.atrasadas}</div><div class="text-[8px] font-bold uppercase text-slate-400">Atrasados</div></div>
+                                            <div class="text-center"><div class="text-xl font-black ${m.venceHoje > 0 ? 'text-orange-500' : 'text-slate-400'}">${m.venceHoje}</div><div class="text-[8px] font-bold uppercase text-slate-400">Hoje</div></div>
+                                            <div class="text-center"><div class="text-xl font-black">${m.pendentes}</div><div class="text-[8px] font-bold uppercase text-slate-400">Pendentes</div></div>
+                                        </div>
+                                        <div class="flex gap-2 mt-4">
+                                            <button onclick="openEditMemberModal('${m.id}')" class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600">✏️ Editar</button>
+                                            <button onclick="resetUserPassword('${m.id}')" class="text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600">🔑 Resetar Senha</button>
+                                            ${m.id !== state.currentUser?.id ? `<button onclick="deleteMember('${m.id}')" class="text-xs bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600">🗑️ Remover</button>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ==================== RELATÓRIOS COM EXPORTAÇÃO PDF ====================
+        function renderReports() {
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            
+            const memberData = [];
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            state.team.forEach(member => {
+                let total = 0, concluidas = 0, atrasadas = 0, pendentes = 0, venceHoje = 0;
+                state.boards.forEach(board => {
+                    board.groups?.forEach(group => {
+                        group.tasks?.forEach(task => {
+                            if (task.ownerId === member.id) {
+                                total++;
+                                if (task.status === 'Concluido') concluidas++;
+                                else {
+                                    pendentes++;
+                                    const due = task.timeline?.[1];
+                                    if (due && due < hoje) atrasadas++;
+                                    if (due === hoje) venceHoje++;
+                                }
+                            }
+                        });
+                    });
+                });
+                memberData.push({
+                    id: member.id, name: member.name, color: member.color, role: member.role,
+                    total, concluidas, pendentes, atrasadas, venceHoje,
+                    progresso: total ? Math.round((concluidas / total) * 100) : 0
+                });
+            });
+            
+            const todasAtrasadas = [];
+            state.boards.forEach(b => {
+                b.groups?.forEach(g => {
+                    g.tasks?.forEach(t => {
+                        if (t.timeline?.[1] && t.timeline[1] < hoje && t.status !== 'Concluido') {
+                            todasAtrasadas.push({ title: t.title, project: b.name, due: t.timeline[1], owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
+                        }
+                    });
+                });
+            });
+            
+            const hojeList = [];
+            state.boards.forEach(b => {
+                b.groups?.forEach(g => {
+                    g.tasks?.forEach(t => {
+                        if (t.timeline?.[1] === hoje && t.status !== 'Concluido') {
+                            hojeList.push({ title: t.title, project: b.name, owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
+                        }
+                    });
+                });
+            });
+            
+            const projectProgress = state.boards.map(b => ({ name: b.name, progress: calculateProjectProgress(b) }));
+            
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-6xl mx-auto p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-black">📈 Relatórios de Desempenho</h2>
+                        <button onclick="exportReportToPDF()" class="pdf-export-btn" id="pdfExportBtn">
+                            <span>📄</span>
+                            <span>Exportar PDF (A4)</span>
+                        </button>
+                    </div>
+                    <div class="report-section">
+                        <h3 class="font-bold text-lg mb-4">👥 Desempenho por Membro</h3>
+                        <div class="overflow-x-auto">
+                            <table class="member-table">
+                                <thead><tr><th>Membro</th><th>Tarefas</th><th>Concluídas</th><th>Pendentes</th><th>Atrasadas</th><th>Vence hoje</th><th>Progresso</th><th></th></tr></thead>
+                                <tbody>${memberData.map(m => `<tr><td><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${m.color}">${m.name.charAt(0)}</div>${escapeHtml(m.name)}</div></td><td class="font-bold">${m.total}</td><td class="text-green-600">${m.concluidas}</td><td class="text-orange-500">${m.pendentes}</td><td class="text-red-500">${m.atrasadas}</td><td class="text-blue-500">${m.venceHoje}</td><td class="progress-cell"><div class="progress-bar-small"><div class="progress-fill-small" style="width:${m.progresso}%"></div></div><span class="text-xs">${m.progresso}%</span></td><td><button onclick="showMemberTasks('${m.id}')" class="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">Ver tarefas</button></td></tr>`).join('')}</tbody>
+                            </table>
                         </div>
-                    `).join('')}</div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="report-section"><h3 class="font-bold mb-4">📊 Tarefas por Membro</h3><canvas id="memberTasksChart" height="200"></canvas></div>
+                        <div class="report-section"><h3 class="font-bold mb-4">✅ Progresso por Projeto</h3><canvas id="projectProgressChart" height="200"></canvas></div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="report-section"><h3 class="font-bold mb-4">⏰ Tarefas Atrasadas</h3><div id="overdueList" class="max-h-60 overflow-y-auto">${todasAtrasadas.length ? `<ul class="space-y-2">${todasAtrasadas.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)} | Venceu em ${new Date(t.due).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa atrasada</p>'}</div></div>
+                        <div class="report-section"><h3 class="font-bold mb-4">📅 Tarefas que Vencem Hoje</h3><div id="todayList" class="max-h-60 overflow-y-auto">${hojeList.length ? `<ul class="space-y-2">${hojeList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa para hoje</p>'}</div></div>
+                    </div>
                 </div>`;
+            
+            setTimeout(() => {
+                const ctxMember = document.getElementById('memberTasksChart')?.getContext('2d');
+                if(ctxMember) new Chart(ctxMember, { type: 'bar', data: { labels: memberData.map(m => m.name), datasets: [{ label: 'Total', data: memberData.map(m => m.total), backgroundColor: '#0073ea' }, { label: 'Concluídas', data: memberData.map(m => m.concluidas), backgroundColor: '#00ca72' }, { label: 'Atrasadas', data: memberData.map(m => m.atrasadas), backgroundColor: '#fb275d' }] } });
+                const ctxProj = document.getElementById('projectProgressChart')?.getContext('2d');
+                if(ctxProj) new Chart(ctxProj, { type: 'bar', data: { labels: projectProgress.map(p => p.name), datasets: [{ label: 'Progresso (%)', data: projectProgress.map(p => p.progress), backgroundColor: '#ffad00' }] } });
+            }, 100);
         }
         
-        function openEditMemberModal(id) {
-            const m = state.team.find(u => u.id === id);
-            if (!m) return;
-            document.getElementById('memberId').value = m.id;
-            document.getElementById('memberName').value = m.name;
-            document.getElementById('memberUsername').value = m.username;
-            document.getElementById('memberPassword').value = '';
-            document.getElementById('memberRole').value = m.role || '';
-            document.getElementById('memberType').value = m.type;
-            document.getElementById('memberModal').classList.remove('hidden');
+        async function exportReportToPDF() {
+            const btn = document.getElementById('pdfExportBtn');
+            const progress = document.getElementById('pdfProgress');
+            if (!btn || !progress) return;
+            try {
+                btn.disabled = true;
+                progress.classList.add('open');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const reportElement = document.getElementById('view-container');
+                const reportSections = reportElement.querySelectorAll('.report-section');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                let currentPage = 1;
+                for (let i = 0; i < reportSections.length; i++) {
+                    const section = reportSections[i];
+                    const clone = section.cloneNode(true);
+                    clone.style.width = '700px';
+                    clone.style.padding = '20px';
+                    clone.style.background = 'white';
+                    clone.style.color = '#1e293b';
+                    clone.querySelectorAll('button, canvas').forEach(el => el.style.display = 'none');
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.position = 'absolute';
+                    tempDiv.style.left = '-9999px';
+                    tempDiv.style.top = '0';
+                    tempDiv.appendChild(clone);
+                    document.body.appendChild(tempDiv);
+                    try {
+                        const canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', logging: false, windowWidth: 800 });
+                        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                        const imgWidth = pageWidth - 20;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        if (i > 0) pdf.addPage();
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.text('Workspace Pro - Relatório de Desempenho', 10, 10);
+                        pdf.text(`Página ${currentPage}`, pageWidth - 30, 10);
+                        pdf.setDrawColor(226, 232, 240);
+                        pdf.line(10, 15, pageWidth - 10, 15);
+                        pdf.addImage(imgData, 'JPEG', 10, 20, imgWidth, imgHeight);
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(148, 163, 184);
+                        pdf.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 10, pageHeight - 5);
+                        currentPage++;
+                    } finally {
+                        document.body.removeChild(tempDiv);
+                    }
+                }
+                pdf.save(`relatorio_equipe_${new Date().toISOString().split('T')[0]}.pdf`);
+                showToast('✅ PDF exportado!');
+            } catch (error) { showToast('❌ Erro ao gerar PDF', true); } finally { btn.disabled = false; progress.classList.remove('open'); }
         }
-
-        // ==================== BOARD ====================
+        
+        function showMemberTasks(memberId) {
+            const member = state.team.find(m => m.id === memberId);
+            if (!member) return;
+            let tarefas = [];
+            state.boards.forEach(board => {
+                board.groups?.forEach(group => {
+                    group.tasks?.forEach(task => {
+                        if (task.ownerId === memberId) {
+                            tarefas.push({ ...task, boardName: board.name, groupName: group.name });
+                        }
+                    });
+                });
+            });
+            if (!tarefas.length) { alert(`${member.name} não possui tarefas.`); return; }
+            let modal = document.createElement('div');
+            modal.className = 'day-modal';
+            modal.innerHTML = `<div class="day-modal-content"><h3 class="font-bold text-lg mb-4">📋 Tarefas de ${escapeHtml(member.name)}</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${tarefas.map(t => `<div class="p-2 border rounded"><div class="font-bold">${escapeHtml(t.title)}</div><div class="text-xs">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div><div class="text-xs">Status: ${STATUS_TYPES[t.status]?.label} | Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</div></div>`).join('')}</div><button onclick="this.closest('.day-modal').remove()" class="mt-4 btn-primary w-full py-2">Fechar</button></div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        }
+        
+        // ==================== DASHBOARD ====================
+        function renderDashboard() {
+            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
+            let statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
+            let teamTask = {};
+            state.team.forEach(m => teamTask[m.id] = { name: m.name, count: 0, overdue: 0 });
+            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; if (teamTask[t.ownerId]) { teamTask[t.ownerId].count++; const ds = calculateDueDateStatus(t.timeline?.[1], t.status); if (ds.status === 'overdue' && t.status !== 'Concluido') teamTask[t.ownerId].overdue++; } }); }); });
+            const total = Object.values(statusCounts).reduce((a,b)=>a+b,0);
+            const perc = total ? Math.round((statusCounts['Concluido']/total)*100) : 0;
+            document.getElementById('view-container').innerHTML = `
+                <div class="max-w-6xl mx-auto p-6"><h2 class="text-3xl font-black mb-8">📊 Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Status Global</h3><canvas id="statusChart" height="200"></canvas></div>
+                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border flex flex-col items-center"><h3 class="font-bold mb-4">Eficiência Geral</h3><div class="relative w-40 h-40"><svg class="w-full h-full -rotate-90"><circle cx="80" cy="80" r="70" stroke="#e2e8f0" stroke-width="12" fill="none"/><circle id="progress-circle" cx="80" cy="80" r="70" stroke="#0073ea" stroke-width="12" fill="none" stroke-dasharray="439.8" stroke-dashoffset="${439.8 - (perc/100)*439.8}" style="transition: stroke-dashoffset 1s"/></svg><div class="absolute inset-0 flex items-center justify-center text-2xl font-black">${perc}%</div></div></div></div>
+                <div class="mt-6 bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Carga por Membro</h3><canvas id="teamChart" height="200"></canvas></div></div>`;
+            setTimeout(() => {
+                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
+                if(ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: Object.keys(STATUS_TYPES).map(k=>statusCounts[k]||0), backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
+                const ctx2 = document.getElementById('teamChart')?.getContext('2d');
+                if(ctx2) new Chart(ctx2, { type: 'bar', data: { labels: Object.values(teamTask).map(t=>t.name), datasets: [{ label: 'Tarefas', data: Object.values(teamTask).map(t=>t.count), backgroundColor: '#0073ea' }, { label: 'Atrasadas', data: Object.values(teamTask).map(t=>t.overdue), backgroundColor: '#fb275d' }] } });
+            }, 100);
+        }
+        
+        // ==================== FUNÇÕES DO BOARD ====================
         function selectBoard(id) { state.activeBoardId = id; state.activeView = 'board'; renderBoardView(); }
-        
         function renderBoardView() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) { renderHome(); return; }
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black inline-flex items-center gap-2">${escapeHtml(board.name)} <button onclick="editBoardName()" class="text-sm bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">✏️</button></h2>${isCurrentUserManager() ? `<button onclick="addNewGroup()" class="ml-auto bg-monday-blue text-white px-3 py-1 rounded-full text-xs">+ Grupo</button>` : ''}</div>
-                <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
-                <div id="board-content"></div></div>`;
+            document.getElementById('view-container').innerHTML = `<div class="max-w-full p-4"><div class="flex items-center gap-3 mb-4"><button onclick="changeMainView('home')" class="text-sm text-slate-500">← Voltar</button><h2 class="text-2xl font-black inline-flex items-center gap-2">${escapeHtml(board.name)} <button onclick="editBoardName()" class="text-sm bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">✏️</button></h2>${isCurrentUserManager() ? `<button onclick="addNewGroup()" class="ml-auto bg-monday-blue text-white px-3 py-1 rounded-full text-xs">+ Grupo</button>` : ''}</div>
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-2"><button onclick="setBoardView('table')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'table' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-table">📋 Tabela</button><button onclick="setBoardView('kanban')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'kanban' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-kanban">🧱 Kanban</button><button onclick="setBoardView('gantt')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'gantt' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-gantt">📅 Gantt</button><button onclick="setBoardView('calendar')" class="px-4 py-2 rounded-full text-sm font-bold ${state.boardView === 'calendar' ? 'bg-monday-blue text-white' : 'bg-white border'}" id="view-calendar">🗓️ Calendário</button></div>
+            <div id="board-content"></div></div>`;
             setBoardView(state.boardView);
         }
-        
         function editBoardName() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) return;
             const newName = prompt("Novo nome do projeto:", board.name);
-            if (newName && newName.trim()) {
-                board.name = newName.trim();
-                fullSave();
-                renderBoardView();
-                renderSidebar();
-                showToast("Nome atualizado");
-            }
+            if (newName && newName.trim()) { board.name = newName.trim(); fullSave(); renderBoardView(); renderSidebar(); showToast("Nome atualizado"); }
         }
-        
         function setBoardView(view) { state.boardView = view; renderBoardContent(); }
-        
         function renderBoardContent() {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) return;
@@ -852,7 +1225,6 @@
             else if (state.boardView === 'gantt') container.innerHTML = renderGantt(board);
             else if (state.boardView === 'calendar') container.innerHTML = renderCalendar(board);
         }
-        
         function renderTable(board) {
             const isManager = isCurrentUserManager();
             return `<div class="space-y-6">${board.groups?.map((g, gIdx) => {
@@ -879,13 +1251,11 @@
                 }).join('')}</tbody> </table></div>${isManager ? `<div class="p-3 border-t"><button onclick="addNewTask('${g.id}')" class="text-monday-blue text-sm">+ Adicionar tarefa</button></div>` : ''}</div></div>`;
             }).join('')}</div>`;
         }
-        
         function renderKanban(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color, groupId: g.id}))) || [];
             const filtered = filterTasksByUser(tasks);
             return `<div class="flex gap-4 overflow-x-auto pb-4">${Object.entries(STATUS_TYPES).map(([key,info]) => `<div class="min-w-[280px] bg-slate-50 dark:bg-slate-800/30 rounded-xl p-3"><div class="flex justify-between mb-3"><h3 class="font-bold">${info.label}</h3><span class="text-xs text-slate-400">${filtered.filter(t=>t.status===key).length}</span></div><div class="space-y-2">${filtered.filter(t=>t.status===key).map(t => `<div class="bg-white dark:bg-[#181829] p-3 rounded-lg shadow-sm cursor-pointer" onclick="showTaskDetail('${t.id}')"><div class="font-bold text-sm">${escapeHtml(t.title)}</div><div class="text-[10px] text-slate-400 mt-1">📁 ${escapeHtml(t.groupName)}</div><div class="flex justify-between mt-2 text-xs"><span class="priority-badge" style="background:${PRIORITY_TYPES[t.priority]?.color}20; color:${PRIORITY_TYPES[t.priority]?.color}">${t.priority}</span><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${state.team.find(m=>m.id===t.ownerId)?.color}">${state.team.find(m=>m.id===t.ownerId)?.name?.charAt(0)}</div></div>${canEditTask(t) ? `<div class="mt-2"><div class="status-trigger text-xs py-1 px-2" style="background:${info.color}" onclick='event.stopPropagation();showStatusDropdown(this, "${t.groupId}", "${t.id}")'>${info.label} ▼</div></div>` : ''}</div>`).join('')}</div></div>`).join('')}</div>`;
         }
-        
         function renderGantt(board) {
             if (!board.groups?.length) return '<div class="p-8 text-center text-slate-400">Nenhum grupo criado</div>';
             const allTasks = [];
@@ -896,7 +1266,6 @@
                 });
             });
             if (!allTasks.length) return '<div class="p-8 text-center text-slate-400">Nenhuma tarefa com datas definidas</div>';
-            
             const today = new Date(); today.setHours(0,0,0,0);
             const dates = allTasks.flatMap(t => t.timeline.map(d => new Date(d)));
             const start = new Date(Math.min(...dates.map(d=>d.getTime()), today.getTime()));
@@ -905,9 +1274,7 @@
             end.setDate(end.getDate() + 30);
             const days = []; let cur = new Date(start);
             while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-            
             let html = `<div class="gantt-wrapper"><div class="gantt-container"><div class="gantt-header"><div class="gantt-task-col" style="width:280px">Tarefa / Grupo</div><div class="gantt-days">${days.map(d => `<div class="gantt-day ${d.getDay()===0||d.getDay()===6 ? 'weekend' : ''} ${d.toDateString()===today.toDateString() ? 'today' : ''}">${d.getDate()}<br><span class="text-[8px]">${d.toLocaleDateString('pt',{month:'short'})}</span></div>`).join('')}</div></div>`;
-            
             for (const group of board.groups) {
                 const groupTasks = (group.tasks || []).filter(t => t.timeline?.[0] && t.timeline?.[1]);
                 html += `<div class="gantt-row-group"><div class="gantt-group-header"><div class="gantt-task-col" style="background:${group.color}20; font-weight:bold">📁 ${escapeHtml(group.name)}</div><div class="gantt-days" style="width:${days.length*48}px"></div></div>`;
@@ -922,7 +1289,6 @@
             html += `</div></div>`;
             return html;
         }
-        
         function renderCalendar(board) {
             const tasks = board.groups?.flatMap(g => g.tasks?.map(t => ({...t, groupName: g.name, groupColor: g.color}))) || [];
             const today = new Date();
@@ -931,28 +1297,15 @@
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month+1, 0).getDate();
             const tasksByDate = {};
-            tasks.forEach(t => { 
-                if (t.timeline?.[1]) { 
-                    const d = new Date(t.timeline[1]); 
-                    if (d.getMonth() === month && d.getFullYear() === year) { 
-                        const key = d.getDate(); 
-                        if (!tasksByDate[key]) tasksByDate[key] = []; 
-                        tasksByDate[key].push(t); 
-                    } 
-                } 
-            });
+            tasks.forEach(t => { if (t.timeline?.[1]) { const d = new Date(t.timeline[1]); if (d.getMonth() === month && d.getFullYear() === year) { const key = d.getDate(); if (!tasksByDate[key]) tasksByDate[key] = []; tasksByDate[key].push(t); } } });
             let html = `<div class="bg-white dark:bg-[#181829] rounded-xl border"><div class="flex justify-between p-4 border-b"><button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full">◀</button><h3 class="font-bold">${new Date(year, month).toLocaleDateString('pt', {month:'long', year:'numeric'})}</h3><button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full">▶</button></div><div class="grid grid-cols-7 text-center py-2 text-xs font-bold text-slate-400"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="grid grid-cols-7">`;
             for (let i=0; i<firstDay; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
-            for (let d=1; d<=daysInMonth; d++) { 
-                const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); 
-                html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''} cursor-pointer hover:bg-slate-100" onclick='showDayTasks(${d}, ${month}, ${year})'><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`; 
-            }
+            for (let d=1; d<=daysInMonth; d++) { const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); html += `<div class="h-24 p-1 border ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''} cursor-pointer hover:bg-slate-100" onclick='showDayTasks(${d}, ${month}, ${year})'><div class="text-xs font-bold ${isToday ? 'text-monday-blue' : ''}">${d}</div><div class="space-y-1 mt-1">${(tasksByDate[d] || []).slice(0,2).map(t => `<div class="text-[9px] truncate p-0.5 rounded text-white" style="background:${t.groupColor}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`).join('')}${(tasksByDate[d] || []).length > 2 ? `<div class="text-[8px] text-slate-400">+${tasksByDate[d].length-2}</div>` : ''}</div></div>`; }
             const remaining = 42 - (firstDay + daysInMonth);
             for (let i=0; i<remaining; i++) html += `<div class="h-24 p-1 border bg-slate-50 dark:bg-slate-800/20"></div>`;
             html += `</div></div>`;
             return html;
         }
-        
         function showDayTasks(day, month, year) {
             const board = state.boards.find(b => b.id === state.activeBoardId);
             if (!board) return;
@@ -966,9 +1319,7 @@
             document.body.appendChild(modal);
             modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
         }
-        
         function changeMonth(delta) { state.calendarDate = state.calendarDate || new Date(); state.calendarDate.setMonth(state.calendarDate.getMonth() + delta); renderBoardContent(); }
-        
         function toggleGroup(gId) { state.collapsedGroups[gId] = !state.collapsedGroups[gId]; renderBoardContent(); }
         
         // ==================== AÇÕES DE TAREFAS ====================
@@ -1078,135 +1429,6 @@
             [group.tasks[idx], group.tasks[idx+1]] = [group.tasks[idx+1], group.tasks[idx]];
             await fullSave();
             renderBoardContent();
-        }
-        
-        // ==================== DASHBOARD ====================
-        function renderDashboard() {
-            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
-            let statusCounts = { 'Nao Iniciado': 0, 'Trabalhando': 0, 'Travado': 0, 'Concluido': 0 };
-            let teamTask = {};
-            state.team.forEach(m => teamTask[m.id] = { name: m.name, count: 0, overdue: 0 });
-            state.boards.forEach(b => { b.groups?.forEach(g => { g.tasks?.forEach(t => { if (STATUS_TYPES[t.status]) statusCounts[t.status]++; if (teamTask[t.ownerId]) { teamTask[t.ownerId].count++; const ds = calculateDueDateStatus(t.timeline?.[1], t.status); if (ds.status === 'overdue' && t.status !== 'Concluido') teamTask[t.ownerId].overdue++; } }); }); });
-            const total = Object.values(statusCounts).reduce((a,b)=>a+b,0);
-            const perc = total ? Math.round((statusCounts['Concluido']/total)*100) : 0;
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto p-6"><h2 class="text-3xl font-black mb-8">📊 Dashboard</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Status Global</h3><canvas id="statusChart" height="200"></canvas></div>
-                <div class="bg-white dark:bg-[#181829] p-6 rounded-2xl border flex flex-col items-center"><h3 class="font-bold mb-4">Eficiência Geral</h3><div class="relative w-40 h-40"><svg class="w-full h-full -rotate-90"><circle cx="80" cy="80" r="70" stroke="#e2e8f0" stroke-width="12" fill="none"/><circle id="progress-circle" cx="80" cy="80" r="70" stroke="#0073ea" stroke-width="12" fill="none" stroke-dasharray="439.8" stroke-dashoffset="${439.8 - (perc/100)*439.8}" style="transition: stroke-dashoffset 1s"/></svg><div class="absolute inset-0 flex items-center justify-center text-2xl font-black">${perc}%</div></div></div></div>
-                <div class="mt-6 bg-white dark:bg-[#181829] p-6 rounded-2xl border"><h3 class="font-bold mb-4">Carga por Membro</h3><canvas id="teamChart" height="200"></canvas></div></div>`;
-            setTimeout(() => {
-                const ctx1 = document.getElementById('statusChart')?.getContext('2d');
-                if(ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: Object.values(STATUS_TYPES).map(s=>s.label), datasets: [{ data: Object.keys(STATUS_TYPES).map(k=>statusCounts[k]||0), backgroundColor: Object.values(STATUS_TYPES).map(s=>s.color) }] } });
-                const ctx2 = document.getElementById('teamChart')?.getContext('2d');
-                if(ctx2) new Chart(ctx2, { type: 'bar', data: { labels: Object.values(teamTask).map(t=>t.name), datasets: [{ label: 'Tarefas', data: Object.values(teamTask).map(t=>t.count), backgroundColor: '#0073ea' }, { label: 'Atrasadas', data: Object.values(teamTask).map(t=>t.overdue), backgroundColor: '#fb275d' }] } });
-            }, 100);
-        }
-        
-        // ==================== RELATÓRIOS (Foco em membros) ====================
-        function renderReports() {
-            if (!isCurrentUserManager()) { document.getElementById('view-container').innerHTML = '<div class="p-8 text-center">Sem permissão</div>'; return; }
-            
-            const memberData = [];
-            const hoje = new Date().toISOString().split('T')[0];
-            
-            state.team.forEach(member => {
-                let total = 0, concluidas = 0, atrasadas = 0, pendentes = 0, venceHoje = 0;
-                state.boards.forEach(board => {
-                    board.groups?.forEach(group => {
-                        group.tasks?.forEach(task => {
-                            if (task.ownerId === member.id) {
-                                total++;
-                                if (task.status === 'Concluido') concluidas++;
-                                else {
-                                    pendentes++;
-                                    const due = task.timeline?.[1];
-                                    if (due && due < hoje) atrasadas++;
-                                    if (due === hoje) venceHoje++;
-                                }
-                            }
-                        });
-                    });
-                });
-                memberData.push({
-                    id: member.id, name: member.name, color: member.color,
-                    total, concluidas, pendentes, atrasadas, venceHoje,
-                    progresso: total ? Math.round((concluidas / total) * 100) : 0
-                });
-            });
-            
-            const todasAtrasadas = [];
-            state.boards.forEach(b => {
-                b.groups?.forEach(g => {
-                    g.tasks?.forEach(t => {
-                        if (t.timeline?.[1] && t.timeline[1] < hoje && t.status !== 'Concluido') {
-                            todasAtrasadas.push({ title: t.title, project: b.name, due: t.timeline[1], owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
-                        }
-                    });
-                });
-            });
-            
-            const hojeList = [];
-            state.boards.forEach(b => {
-                b.groups?.forEach(g => {
-                    g.tasks?.forEach(t => {
-                        if (t.timeline?.[1] === hoje && t.status !== 'Concluido') {
-                            hojeList.push({ title: t.title, project: b.name, owner: state.team.find(m=>m.id===t.ownerId)?.name || '?' });
-                        }
-                    });
-                });
-            });
-            
-            const projectProgress = state.boards.map(b => ({ name: b.name, progress: calculateProjectProgress(b) }));
-            
-            document.getElementById('view-container').innerHTML = `
-                <div class="max-w-6xl mx-auto p-6">
-                    <h2 class="text-3xl font-black mb-6">📈 Relatórios de Desempenho</h2>
-                    <div class="report-section">
-                        <h3 class="font-bold text-lg mb-4">👥 Desempenho por Membro</h3>
-                        <div class="overflow-x-auto">
-                            <table class="member-table">
-                                <thead><tr><th>Membro</th><th>Tarefas</th><th>Concluídas</th><th>Pendentes</th><th>Atrasadas</th><th>Vence hoje</th><th>Progresso</th><th></th></tr></thead>
-                                <tbody>${memberData.map(m => `<tr><td><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${m.color}">${m.name.charAt(0)}</div>${escapeHtml(m.name)}</div></td><td class="font-bold">${m.total}</td><td class="text-green-600">${m.concluidas}</td><td class="text-orange-500">${m.pendentes}</td><td class="text-red-500">${m.atrasadas}</td><td class="text-blue-500">${m.venceHoje}</td><td class="progress-cell"><div class="progress-bar-small"><div class="progress-fill-small" style="width:${m.progresso}%"></div></div><span class="text-xs">${m.progresso}%</span></td><td><button onclick="showMemberTasks('${m.id}')" class="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">Ver tarefas</button></td></tr>`).join('')}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div class="report-section"><h3 class="font-bold mb-4">📊 Tarefas por Membro</h3><canvas id="memberTasksChart" height="200"></canvas></div>
-                        <div class="report-section"><h3 class="font-bold mb-4">✅ Progresso por Projeto</h3><canvas id="projectProgressChart" height="200"></canvas></div>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="report-section"><h3 class="font-bold mb-4">⏰ Tarefas Atrasadas</h3><div id="overdueList" class="max-h-60 overflow-y-auto">${todasAtrasadas.length ? `<ul class="space-y-2">${todasAtrasadas.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)} | Venceu em ${new Date(t.due).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa atrasada</p>'}</div></div>
-                        <div class="report-section"><h3 class="font-bold mb-4">📅 Tarefas que Vencem Hoje</h3><div id="todayList" class="max-h-60 overflow-y-auto">${hojeList.length ? `<ul class="space-y-2">${hojeList.map(t => `<li class="p-2 border rounded"><b>${escapeHtml(t.title)}</b> (${escapeHtml(t.project)})<br><span class="text-xs">Responsável: ${escapeHtml(t.owner)}</span></li>`).join('')}</ul>` : '<p class="text-slate-400">Nenhuma tarefa para hoje</p>'}</div></div>
-                    </div>
-                </div>`;
-            
-            setTimeout(() => {
-                const ctxMember = document.getElementById('memberTasksChart')?.getContext('2d');
-                if(ctxMember) new Chart(ctxMember, { type: 'bar', data: { labels: memberData.map(m => m.name), datasets: [{ label: 'Total', data: memberData.map(m => m.total), backgroundColor: '#0073ea' }, { label: 'Concluídas', data: memberData.map(m => m.concluidas), backgroundColor: '#00ca72' }, { label: 'Atrasadas', data: memberData.map(m => m.atrasadas), backgroundColor: '#fb275d' }] } });
-                const ctxProj = document.getElementById('projectProgressChart')?.getContext('2d');
-                if(ctxProj) new Chart(ctxProj, { type: 'bar', data: { labels: projectProgress.map(p => p.name), datasets: [{ label: 'Progresso (%)', data: projectProgress.map(p => p.progress), backgroundColor: '#ffad00' }] } });
-            }, 100);
-        }
-        
-        function showMemberTasks(memberId) {
-            const member = state.team.find(m => m.id === memberId);
-            if (!member) return;
-            let tarefas = [];
-            state.boards.forEach(board => {
-                board.groups?.forEach(group => {
-                    group.tasks?.forEach(task => {
-                        if (task.ownerId === memberId) {
-                            tarefas.push({ ...task, boardName: board.name, groupName: group.name });
-                        }
-                    });
-                });
-            });
-            if (!tarefas.length) { alert(`${member.name} não possui tarefas.`); return; }
-            let modal = document.createElement('div');
-            modal.className = 'day-modal';
-            modal.innerHTML = `<div class="day-modal-content"><h3 class="font-bold text-lg mb-4">📋 Tarefas de ${escapeHtml(member.name)}</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${tarefas.map(t => `<div class="p-2 border rounded"><div class="font-bold">${escapeHtml(t.title)}</div><div class="text-xs">Projeto: ${escapeHtml(t.boardName)} | Grupo: ${escapeHtml(t.groupName)}</div><div class="text-xs">Status: ${STATUS_TYPES[t.status]?.label} | Vence: ${t.timeline?.[1] ? new Date(t.timeline[1]).toLocaleDateString() : 'Sem data'}</div></div>`).join('')}</div><button onclick="this.closest('.day-modal').remove()" class="mt-4 btn-primary w-full py-2">Fechar</button></div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
         }
         
         // ==================== DROPDOWNS ====================
